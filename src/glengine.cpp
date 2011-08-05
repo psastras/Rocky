@@ -97,8 +97,12 @@ GLEngine::~GLEngine() {
 
 void GLEngine::resize(int w, int h) {
     width_ = w; height_ = h;
-    glViewport(0, 0, w, h);
-   // std::cout << w << " x " << h << std::endl;
+    glViewport(0, 0, width_, height_);
+    primtives_["quad1"]->tesselate(float3(1, 1, 0),
+			float3(width_ * 0.5, height_ * 0.5, 0),
+			float3(width_, height_, 1));
+   pMultisampleFramebuffer->resize(width_, height_);
+   pFramebuffer->resize(width_, height_);
 }
 
 void GLEngine::draw(float time, float dt, const KeyboardController *keyController) {

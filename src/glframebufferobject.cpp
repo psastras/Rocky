@@ -137,3 +137,60 @@ void GLFramebufferObject::bind() {
 void GLFramebufferObject::release() {
      glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
+
+void GLFramebufferObject::resize(int width, int height) {
+    if(params_.width == width &&  params_.height == height) return;
+    params_.width = width;
+    params_.height = height;
+    
+    this->bind();
+    if(params_.nSamples > 0) { //create multisample targets
+	GLint maxSamples = 0;
+        glGetIntegerv(GL_MAX_SAMPLES_EXT, &maxSamples);
+	if(params_.nSamples > maxSamples) {
+	    cerr << "Warning: maximum number of samples supported is " << maxSamples << " but requested number of samples is " <<
+		    params_.nSamples << ".  Falling back to " << maxSamples << " samples." << endl;
+	    params_.nSamples = maxSamples;
+	}
+	for(int i=0; i<params_.nColorAttachments; i++) {
+            glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, color_[i]);
+	    glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params_.nSamples, params_.format, params_.width, params_.height);
+	    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_RENDERBUFFER_EXT, color_[i]);
+	}
+
+    } else { //create regular targets
+	for(int i=0; i<params_.nColorAttachments; i++) {
+	    glBindTexture(GL_TEXTURE_2D, color_[i]);
+	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	    glTexImage2D(GL_TEXTURE_2D, 0, params_.format, params_.width, params_.height, 0, GL_LUMINANCE, GL_FLOAT, 0);
+	    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_TEXTURE_2D, color_[i], 0);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+
+    if(params_.hasDepth) {
+	if(params_.nSamples > 0) {
+	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depth_);
+	    glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params_.nSamples, params_.depthFormat, params_.width, params_.height);
+	    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, depth_);
+	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+	} else {
+	    glBindTexture(GL_TEXTURE_2D, depth_);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	    glTexImage2D(GL_TEXTURE_2D, 0, params_.depthFormat, params_.width, params_.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_, 0);
+	    glBindTexture(GL_TEXTURE_2D, 0);
+
+	}
+
+    }
+    this->release();
+}

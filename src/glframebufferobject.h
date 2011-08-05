@@ -25,12 +25,15 @@ public:
     void bindsurface(int idx) { glBindTexture(GL_TEXTURE_2D, color_[idx]);}
     void unbindsurface() { glBindTexture(GL_TEXTURE_2D, 0); }
     void release();
+    
+    void resize(int width, int height);
     void blit(GLFramebufferObject &dst); /// blit contents into the destination framebuffer
     GLuint* texture();
     GLuint depth();
 
 protected:
 
+    
     void allocFramebuffer(GLFramebufferObjectParams &params);
 
     GLuint depth_, *color_, id_;
