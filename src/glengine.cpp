@@ -102,52 +102,34 @@ void GLEngine::resize(int w, int h) {
 }
 
 void GLEngine::draw(float time, float dt, const KeyboardController *keyController) {
-
-
-
-    //compute ocean heightfield
     processKeyEvents(keyController, dt);
-
     if(renderMode_ == WIREFRAME) glPolygonMode(GL_FRONT, GL_LINE);
     glEnable(GL_DEPTH_TEST);
-    int w = width_, h = height_;
-    vsml_->perspective(camera_.fovy, w / (float)h, camera_.near, camera_.far);
-    vsml_->loadIdentity(VSML::MODELVIEW);
-    vsml_->rotate(camera_.rotx, 1.f, 0.f, 0.f);
-    vsml_->rotate(camera_.roty, 0.f, 1.f, 0.f);
-    vsml_->translate(-camera_.eye.x, -camera_.eye.y, -camera_.eye.z);
+    
+    this->vsmlPersepective();
 
    //begin icos test
-
     pMultisampleFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    shaderPrograms_["icosohedron"]->bind();
-    vsml_->initUniformLocs(shaderPrograms_["icosohedron"]->getUniformLocation("modelviewMatrix"),
-			   shaderPrograms_["icosohedron"]->getUniformLocation("projMatrix"));
-    vsml_->matrixToUniform(VSML::MODELVIEW);
-    vsml_->matrixToUniform(VSML::PROJECTION);
+    shaderPrograms_["icosohedron"]->bind(vsml_);
     float distance = 1.f / (abs(camera_.eye.getDistance(primtives_["sphere0"]->translate()) - primtives_["sphere0"]->scale().x) + 0.0001f);
     float tess = 12;//(float)max((int)(distance * 150), 3);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
     primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
-
+    
+    
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer);
-
+    
+    
     glDisable(GL_DEPTH_TEST);
+    
     if(renderMode_ == WIREFRAME) glPolygonMode(GL_FRONT, GL_FILL);
-    vsml_->loadIdentity(VSML::PROJECTION);
-    vsml_->ortho(0.f,(float)width_,(float)height_,0.f);
-    vsml_->loadIdentity(VSML::MODELVIEW);
-
-    shaderPrograms_["default"]->bind();
-    vsml_->initUniformLocs(shaderPrograms_["default"]->getUniformLocation("modelviewMatrix"),
-			   shaderPrograms_["default"]->getUniformLocation("projMatrix"));
-    vsml_->matrixToUniform(VSML::MODELVIEW);
-    vsml_->matrixToUniform(VSML::PROJECTION);
+    
+    this->vsmlOrtho();
+    shaderPrograms_["default"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
     pFramebuffer->bindsurface(0);
     shaderPrograms_["default"]->setUniformValue("tex", 0);
@@ -155,13 +137,29 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     pFramebuffer->unbindsurface();
     shaderPrograms_["default"]->release();
 
-    camera_.orthogonal_camera(w, h);
+    camera_.orthogonal_camera(width_, height_);
 }
 
-float sensitivity = 50.f;
+void GLEngine::vsmlOrtho() {
+    vsml_->loadIdentity(VSML::PROJECTION);
+    vsml_->ortho(0.f,(float)width_,(float)height_,0.f);
+    vsml_->loadIdentity(VSML::MODELVIEW);
+}
+
+void GLEngine::vsmlPersepective() {
+    int w = width_, h = height_;
+    vsml_->perspective(camera_.fovy, w / (float)h, camera_.near, camera_.far);
+    vsml_->loadIdentity(VSML::MODELVIEW);
+    vsml_->rotate(camera_.rotx, 1.f, 0.f, 0.f);
+    vsml_->rotate(camera_.roty, 0.f, 1.f, 0.f);
+    vsml_->translate(-camera_.eye.x, -camera_.eye.y, -camera_.eye.z);
+}
+
+float sensitivity = 0.000001f;
 void GLEngine::mouseMove(float dx, float dy, float dt) {
-    float deltax = -dx*dt*sensitivity;
-    float deltay = -dy*dt*sensitivity;
+    if(dt == 0.f) return;
+    float deltax = -dx*sensitivity/dt;
+    float deltay = -dy*sensitivity/dt;
     camera_.roty -= deltax;
     camera_.rotx += deltay;
 }
@@ -185,7 +183,7 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 #define KEY_SPACE 65
 #endif
 
-    float delta = dt*sensitivity;
+    float delta = sensitivity / dt;
     if(keycontroller->isKeyDown(KEY_W)) { //W
 	float yrotrad = camera_.roty / 180 * 3.141592654f;
 	float xrotrad = camera_.rotx / 180 * 3.141592654f;

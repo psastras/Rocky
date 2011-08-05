@@ -15,10 +15,11 @@ else
     LDFLAGS = -lm -lX11 -lGL -lGLU 
 endif
 
-INCLUDES = -IC:/Qt/qtcreator-2.2.82/mingw/include
 
 SRCDIR := src
 VSMLDIR := 3rdparty/VSML
+
+INCLUDES = -IC:/Qt/qtcreator-2.2.82/mingw/include -I$(VSMLDIR)
 OBJFILES := $(patsubst $(VSMLDIR)/%.cpp,$(VSMLDIR)/%.o,$(wildcard $(VSMLDIR)/*.cpp)) $(patsubst $(SRCDIR)/%.cpp,$(SRCDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
 COMPILE = $(CC) $(CFLAGS) $(INCLUDES) -c
 

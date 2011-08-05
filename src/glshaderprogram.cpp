@@ -1,4 +1,5 @@
 #include "glshaderprogram.h"
+#include <vsml.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -72,4 +73,12 @@ bool GLShaderProgram::link() {
 //    glBindAttribLocation(programId_, 2, "in_TexCoord"); // Bind another constant attribute location, this time for color
     glLinkProgram(programId_);
     return true;
+}
+
+void GLShaderProgram::bind(VSML *instance) {
+    this->bind();
+    instance->initUniformLocs(this->getUniformLocation("modelviewMatrix"),
+			      this->getUniformLocation("projMatrix"));
+    instance->matrixToUniform(VSML::MODELVIEW);
+    instance->matrixToUniform(VSML::PROJECTION);
 }

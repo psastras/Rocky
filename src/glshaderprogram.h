@@ -6,6 +6,8 @@
 
 #include <unordered_map>
 #include <vector>
+
+class VSML;
 class GLShaderProgram
 {
 public:
@@ -16,6 +18,7 @@ public:
 
     bool link();
     void bind() { glUseProgram(programId_); }
+    void bind(VSML *instance);
     void release() { glUseProgram(0); }
 
     inline GLint getUniformLocation(const char *name) {

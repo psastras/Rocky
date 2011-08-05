@@ -48,7 +48,8 @@ public:
 protected:
 
     void processKeyEvents(const KeyboardController *keycontroller, float dt);
-
+    void vsmlPersepective();
+    void vsmlOrtho();
     int width_, height_;
     Camera camera_;
     VSML *vsml_;
