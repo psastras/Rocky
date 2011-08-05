@@ -123,14 +123,16 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
   
-    float tess = 14;//(float)max((int)(distance * 150), 3);
+    float distance = 1.f / (abs((primtives_["sphere0"]->scale().x - 
+				 camera_.eye.getMagnitude()) + 0.001f));
+    float tess = (float)max((int)(distance * 10000), 3);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
     primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
     
-    float distance = 1.f / (abs(camera_.eye.y) + 0.001f);
-    tess = (float)max((int)(distance * 300), 3);
+    distance = 1.f / (abs(camera_.eye.y) + 0.001f);
+    tess = (float)max((int)(distance * 400), 3);
       
     
     shaderPrograms_["recttess"]->bind(vsml_);
@@ -204,7 +206,7 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 #define KEY_SPACE 65
 #endif
 
-    float delta = sensitivity / dt;
+    float delta = sensitivity * 10.0 / dt;
     if(keycontroller->isKeyDown(KEY_W)) { //W
 	float yrotrad = camera_.roty / 180 * 3.141592654f;
 	float xrotrad = camera_.rotx / 180 * 3.141592654f;
