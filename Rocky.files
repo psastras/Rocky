@@ -18,3 +18,4 @@ src/glframebufferobject.h
 shaders/solid.glsl
 shaders/icosohedron.glsl
 shaders/default.glsl
+shaders/recttess.glsl

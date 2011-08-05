@@ -26,6 +26,7 @@ class GLPrimitive {
       GLuint vertexId_, indexId_, arrayId_;
       GLenum type_;
       GLuint idxCount_;
+      GLuint typeCount_;
       int vOffset_, tOffset_, nOffset_;
 
       float3 scale_, translate_;
@@ -37,6 +38,14 @@ class GLQuad : public GLPrimitive {
 	~GLQuad();
 
 	void tesselate(float3 tess, float3 translate, float3 scale);
+};
+
+class GLRect : public GLPrimitive {
+public:
+    GLRect(float3 tess, float3 translate, float3 scale);
+    ~GLRect();
+
+    void tesselate(float3 tess, float3 translate, float3 scale);
 };
 
 class GLPlane : public GLPrimitive {

@@ -5,7 +5,7 @@
 #include "glprimitive.h"
 #include "glshaderprogram.h"
 #include "keyboardcontroller.h"
-#include "../3rdparty/VSML/vsml.h"
+#include <vsml.h>
 
 GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer;
 GLPrimitive *pQuad;
@@ -53,11 +53,6 @@ GLEngine::GLEngine(WindowProperties &properties) {
 
     pFramebuffer = new GLFramebufferObject(params);
 
-
-    primtives_["quad0"] = new GLQuad(float3(136, 77, 0),
-			  float3(0.5, 0.5, 0),
-			  float3(width_, height_, 1));
-
     primtives_["quad1"] = new GLQuad(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
@@ -65,6 +60,10 @@ GLEngine::GLEngine(WindowProperties &properties) {
     primtives_["plane0"] = new GLPlane(float3(40, 0, 40),
 			 float3(0, 0, 0),
 			 float3(20, 1, 20));
+    
+    primtives_["rect0"] = new GLRect(float3(5, 0, 5),
+			 float3(0, 0, 0),
+			 float3(100, 1, 100));
 
     primtives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(1000, 1000, 1000));
 
@@ -86,6 +85,13 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->link();
+    
+    shaderPrograms_["recttess"] = new GLShaderProgram();
+    shaderPrograms_["recttess"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/recttess.glsl");
+    shaderPrograms_["recttess"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/recttess.glsl");
+    shaderPrograms_["recttess"]->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/recttess.glsl");
+    shaderPrograms_["recttess"]->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
+    shaderPrograms_["recttess"]->link();
 }
 
 
@@ -116,13 +122,24 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     pMultisampleFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
-    float distance = 1.f / (abs(camera_.eye.getDistance(primtives_["sphere0"]->translate()) - primtives_["sphere0"]->scale().x) + 0.0001f);
-    float tess = 12;//(float)max((int)(distance * 150), 3);
+  
+    float tess = 14;//(float)max((int)(distance * 150), 3);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
     primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
     
+    float distance = 1.f / (abs(camera_.eye.y) + 0.001f);
+    tess = (float)max((int)(distance * 300), 3);
+      
+    
+    shaderPrograms_["recttess"]->bind(vsml_);
+    shaderPrograms_["recttess"]->setUniformValue("TessLevelInner", tess);
+    shaderPrograms_["recttess"]->setUniformValue("TessLevelOuter", tess);
+    shaderPrograms_["recttess"]->setUniformValue("grid", float2(4, 4));
+    shaderPrograms_["recttess"]->setUniformValue("D", primtives_["rect0"]->scale().x);
+    primtives_["rect0"]->draw(shaderPrograms_["solid"], 16);
+    shaderPrograms_["recttess"]->release();
     
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer);

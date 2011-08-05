@@ -28,6 +28,7 @@ void GLPrimitive::draw(GLShaderProgram *program, int instances) {
     glEnableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
+    if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
     glDrawElementsInstanced(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0), instances);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(program->getAttributeLocation("in_Position"));
@@ -51,7 +52,7 @@ void GLPrimitive::draw(GLShaderProgram *program) {
     glEnableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
-    if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, 3);
+    if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(program->getAttributeLocation("in_Position"));
@@ -197,7 +198,8 @@ GLIcosohedron::GLIcosohedron(float3 tess, float3 translate, float3 scale) : GLPr
 }
 
 void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
-    type_ = GL_PATCHES;
+    type_ = GL_PATCHES;	
+    typeCount_ = 3;
 
     const unsigned short pIndices[] = {
 	2,1,0,3,2,0,4,3,0,5,4,0,1,5,0,11,6,7,11,7,8,11,8,9,11,9,10,11,10,6,1,2,6,
@@ -233,4 +235,58 @@ void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
     glGenBuffers(1, &indexId_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, pIndices, GL_STATIC_DRAW);
+}
+
+
+GLRect::GLRect(float3 tess, float3 translate, float3 scale) : GLPrimitive(tess, translate, scale) {
+    this->tesselate(tess, translate, scale);
+}
+
+void GLRect::tesselate(float3 tess, float3 translate, float3 scale) {
+    if(vertexId_) glDeleteBuffers(1, &vertexId_);
+    if(indexId_) glDeleteBuffers(1, &indexId_);
+    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
+    
+    glGenVertexArrays(1, &arrayId_);
+    glBindVertexArray(arrayId_);
+
+    type_ = GL_PATCHES;
+    typeCount_ = 4;
+    idxCount_ = 4 * tess.x * tess.z;
+    float3 delta = scale / tess;
+    float3 tdelta = 1.0 / tess;
+    delta.y = 0;
+    GLVertex *pVertex = new GLVertex[(int)((tess.x + 1) * (tess.z + 1))];
+    for(int z=0, i=0; z<=tess.z; z++) {
+	for(int x=0; x<=tess.x; x++, i++) {
+	    pVertex[i].p = float3(-0.5, 0.0, -0.5) * scale + translate + delta * float3(x, 0, z);
+	    pVertex[i].n = float3(0.0, 1.0, 0.0);
+	    pVertex[i].t = float3(x, z, 0) * tdelta;
+	}
+    }
+    glGenBuffers(1, &vertexId_);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertex)*((tess.x + 1) * (tess.z + 1)), &pVertex[0].p.x, GL_STATIC_DRAW);
+
+    unsigned short *pIndices = new unsigned short[idxCount_];
+    for(int y=0, i=0; y<tess.z; y++) {
+	for(int x=0; x<tess.x; x++, i+=4) {
+	   pIndices[i] = y*(tess.x+1)+x;
+	   pIndices[i+1] = y*(tess.x+1)+x+1;
+	   pIndices[i+2] = (y+1)*(tess.x+1)+x+1;
+	   pIndices[i+3] = (y+1)*(tess.x+1)+x;
+	}
+    }
+
+    glGenBuffers(1, &indexId_);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, &pIndices[0], GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    delete[] pVertex, delete[] pIndices;
+
+    //byte offsets in the vertex struct...this may as well be hard coded for now.
+    vOffset_ = 0;
+    nOffset_ = 12;
+    tOffset_ = 24;
 }
