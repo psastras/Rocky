@@ -2,6 +2,7 @@
 #define GLENGINE_H
 
 #include "glcommon.h"
+
 #include <unordered_map>
 #include <cstring>
 using namespace std;
@@ -11,7 +12,7 @@ class GLPrimitive;
 class GLShaderProgram;
 class VSML;
 class GLFFTWater;
-
+class GLPerlinTerrain;
 struct WindowProperties {
     int width, height;
 };
@@ -41,6 +42,11 @@ public:
 
     int width() { return width_; }
     int height() { return height_; }
+    void vsmlPersepective();
+    void vsmlOrtho();
+    void vsmlOrtho(int width, int height);
+    VSML *vsml() { return vsml_; }
+    Camera *camera() { return &camera_; }
 
     void setRenderMode(RenderMode mode) { renderMode_ = mode; }
 
@@ -48,14 +54,14 @@ public:
 protected:
 
     void processKeyEvents(const KeyboardController *keycontroller, float dt);
-    void vsmlPersepective();
-    void vsmlOrtho();
+
     int width_, height_;
     Camera camera_;
     VSML *vsml_;
     unordered_map<const char*, GLShaderProgram *, hash<const char*>, eqstr> shaderPrograms_;
     unordered_map<const char*, GLPrimitive *> primtives_;
     RenderMode renderMode_;
+    GLPerlinTerrain *terrain_;
 };
 
 

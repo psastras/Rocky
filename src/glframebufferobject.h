@@ -6,7 +6,7 @@
 struct GLFramebufferObjectParams {
     int width, height, nColorAttachments, nSamples;
     bool hasDepth;
-    GLenum format, depthFormat;
+    GLenum format, depthFormat, type;
 };
 
 class GLFramebufferObject
@@ -22,8 +22,8 @@ public:
     int width() { return params_.width; }
     int height() { return params_.height; }
     bool multisample() { return params_.nSamples > 0; }
-    void bindsurface(int idx) { glBindTexture(GL_TEXTURE_2D, color_[idx]);}
-    void unbindsurface() { glBindTexture(GL_TEXTURE_2D, 0); }
+    void bindsurface(int idx);
+    void unbindsurface() { glBindTexture(params_.type, 0); }
     void release();
     
     void resize(int width, int height);
@@ -31,6 +31,9 @@ public:
     GLuint* texture();
     GLuint depth();
 
+    static int queryMaxSamples();
+    static int queryMaxAttachments();
+    
 protected:
 
     

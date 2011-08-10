@@ -19,3 +19,5 @@ shaders/solid.glsl
 shaders/icosohedron.glsl
 shaders/default.glsl
 shaders/recttess.glsl
+src/glperlinterrain.h
+src/glperlinterrain.cpp

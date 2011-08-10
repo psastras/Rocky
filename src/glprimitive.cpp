@@ -130,7 +130,6 @@ void GLQuad::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
-    //byte offsets in the vertex struct...this may as well be hard coded for now.
     vOffset_ = 0;
     nOffset_ = 12;
     tOffset_ = 24;

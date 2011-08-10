@@ -5,6 +5,7 @@
 #include "glprimitive.h"
 #include "glshaderprogram.h"
 #include "keyboardcontroller.h"
+#include "glperlinterrain.h"
 #include <vsml.h>
 
 GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer;
@@ -43,8 +44,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.depthFormat = GL_DEPTH_COMPONENT;
     params.format = GL_RGBA;
     params.nColorAttachments = 1;
-    params.nSamples = 16;
-
+    params.nSamples = GLFramebufferObject::queryMaxSamples();
+    params.type = GL_TEXTURE_2D;
     pMultisampleFramebuffer = new GLFramebufferObject(params);
 
     params.hasDepth = false;
@@ -61,9 +62,6 @@ GLEngine::GLEngine(WindowProperties &properties) {
 			 float3(0, 0, 0),
 			 float3(20, 1, 20));
     
-    primtives_["rect0"] = new GLRect(float3(5, 0, 5),
-			 float3(0, 0, 0),
-			 float3(100, 1, 100));
 
     primtives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(1000, 1000, 1000));
 
@@ -86,12 +84,10 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->link();
     
-    shaderPrograms_["recttess"] = new GLShaderProgram();
-    shaderPrograms_["recttess"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/recttess.glsl");
-    shaderPrograms_["recttess"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/recttess.glsl");
-    shaderPrograms_["recttess"]->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/recttess.glsl");
-    shaderPrograms_["recttess"]->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
-    shaderPrograms_["recttess"]->link();
+    GLPerlinTerrainParams paramsT;
+    paramsT.resolution = 1024;
+    
+    terrain_ = new GLPerlinTerrain(paramsT, this);
 }
 
 
@@ -130,19 +126,7 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
     primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
-    
-    distance = 1.f / (abs(camera_.eye.y) + 0.001f);
-    tess = (float)max((int)(distance * 400), 3);
-      
-    
-    shaderPrograms_["recttess"]->bind(vsml_);
-    shaderPrograms_["recttess"]->setUniformValue("TessLevelInner", tess);
-    shaderPrograms_["recttess"]->setUniformValue("TessLevelOuter", tess);
-    shaderPrograms_["recttess"]->setUniformValue("grid", float2(4, 4));
-    shaderPrograms_["recttess"]->setUniformValue("D", primtives_["rect0"]->scale().x);
-    primtives_["rect0"]->draw(shaderPrograms_["solid"], 16);
-    shaderPrograms_["recttess"]->release();
-    
+    terrain_->draw(vsml_);
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer);
     
@@ -166,6 +150,12 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
 void GLEngine::vsmlOrtho() {
     vsml_->loadIdentity(VSML::PROJECTION);
     vsml_->ortho(0.f,(float)width_,(float)height_,0.f);
+    vsml_->loadIdentity(VSML::MODELVIEW);
+}
+
+void GLEngine::vsmlOrtho(int width, int height) {
+    vsml_->loadIdentity(VSML::PROJECTION);
+    vsml_->ortho(0.f,(float)width,(float)height,0.f);
     vsml_->loadIdentity(VSML::MODELVIEW);
 }
 

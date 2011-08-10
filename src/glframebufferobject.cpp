@@ -32,13 +32,26 @@ GLFramebufferObject::~GLFramebufferObject() {
 
 }
 
+void GLFramebufferObject::bindsurface(int idx) {
+    if(params_.type == GL_TEXTURE_2D) {
+	glBindTexture(GL_TEXTURE_2D, color_[idx]);
+    }
+    else if(params_.type == GL_TEXTURE_3D) {
+	glBindTexture(GL_TEXTURE_3D, color_[0]);
+    }
+}
+
 // @todo: add stencil buffer support and error handling (esp. for nonsupported formats)
 void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
     glGenFramebuffersEXT(1, &id_);
 
     this->bind();
-    color_ = new GLuint[params.nColorAttachments];
-
+    
+    if(params.type == GL_TEXTURE_2D)
+	color_ = new GLuint[params.nColorAttachments];
+    else if(params.type == GL_TEXTURE_3D)
+	color_ = new GLuint[1];
+    
     if(params.nSamples > 0) { //create multisample targets
 	GLint maxSamples = 0;
         glGetIntegerv(GL_MAX_SAMPLES_EXT, &maxSamples);
@@ -47,30 +60,54 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 		    params.nSamples << ".  Falling back to " << maxSamples << " samples." << endl;
 	    params.nSamples = maxSamples;
 	}
-	glGenRenderbuffersEXT(params.nColorAttachments, &color_[0]);
-	for(int i=0; i<params.nColorAttachments; i++) {
-            glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, color_[i]);
-	    glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params.nSamples, params.format, params.width, params.height);
-	    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_RENDERBUFFER_EXT, color_[i]);
+	
+	if(params.type == GL_TEXTURE_2D) {
+	
+	    glGenRenderbuffersEXT(params.nColorAttachments, &color_[0]);
+	    for(int i=0; i<params.nColorAttachments; i++) {
+		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, color_[i]);
+		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params.nSamples, params.format, params.width, params.height);
+		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_RENDERBUFFER_EXT, color_[i]);
+	    }
+	} else if(params.type == GL_TEXTURE_3D) {
+	    cerr << "3D textures with multisample framebuffers currently not supported.";
+	    assert(0);
 	}
 
     } else { //create regular targets
-	glGenTextures(params.nColorAttachments, &color_[0]);
+	
+	if(params.type == GL_TEXTURE_2D) {
+	    glGenTextures(params.nColorAttachments, &color_[0]);
+	    
+	    for(int i=0; i<params.nColorAttachments; i++) {
+		glBindTexture(params.type, color_[i]);
+		glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, params.format, params.width, params.height, 0, GL_LUMINANCE, GL_FLOAT, 0);
+	        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, color_[i], 0);
+	    }
 
-	for(int i=0; i<params.nColorAttachments; i++) {
-	    glBindTexture(GL_TEXTURE_2D, color_[i]);
-	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	    glTexImage2D(GL_TEXTURE_2D, 0, params.format, params.width, params.height, 0, GL_LUMINANCE, GL_FLOAT, 0);
-	    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_TEXTURE_2D, color_[i], 0);
+	    glBindTexture(params.type, 0);
+	} else if(params.type == GL_TEXTURE_3D) {
+	    glGenTextures(1, &color_[0]);
+	    glBindTexture(params.type, color_[0]);
+	     
+	    glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	    glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	    
+	    glTexImage3D(params.type, 0, params.format, params.width, params.height, 
+			 params.nColorAttachments, 0, GL_LUMINANCE, GL_FLOAT, 0);
+	    GLERROR("creating framebuffer object - ");
+	    for(int i=0; i<params.nColorAttachments; i++) {
+		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, color_[0], 0, i);
+	    }
+	    GLERROR("creating framebuffer object -- ");
 	}
-
-	glBindTexture(GL_TEXTURE_2D, 0);
     }
 
 
     if(params.hasDepth) {
-
+	
 	if(params.nSamples > 0) {
 	    glGenRenderbuffersEXT(1, &depth_);
 	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depth_);
@@ -79,17 +116,16 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
 	} else {
 	    glGenTextures(1, &depth_);
-	    glBindTexture(GL_TEXTURE_2D, depth_);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	    glBindTexture(params.type, depth_);
+	    glTexParameteri(params.type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	    glTexParameteri(params.type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	    glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-	    glTexImage2D(GL_TEXTURE_2D, 0, params.depthFormat, params.width, params.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	    glTexParameterf(params.type, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	    glTexParameterf(params.type, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	    glTexParameteri(params.type, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	    glTexImage2D(params.type, 0, params.depthFormat, params.width, params.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_, 0);
-	    glBindTexture(GL_TEXTURE_2D, 0);
-
+	    glBindTexture(params.type, 0);
 	}
 
     }
@@ -136,6 +172,18 @@ void GLFramebufferObject::bind() {
 
 void GLFramebufferObject::release() {
      glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+}
+
+int GLFramebufferObject::queryMaxSamples() {
+    GLint maxSamples = 0;
+    glGetIntegerv(GL_MAX_SAMPLES_EXT, &maxSamples);
+    return maxSamples;
+}
+
+int GLFramebufferObject::queryMaxAttachments() {
+    GLint maxAttachments = 0;
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxAttachments);
+    return maxAttachments;
 }
 
 void GLFramebufferObject::resize(int width, int height) {
