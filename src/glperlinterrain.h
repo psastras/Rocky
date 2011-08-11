@@ -32,7 +32,7 @@ protected:
     
     GLuint tex_;
     GLPerlinTerrainParams params_;
-    GLShaderProgram *drawShader_, *perlinShader;
+    GLShaderProgram *drawShader_, *perlinShader_;
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
 };

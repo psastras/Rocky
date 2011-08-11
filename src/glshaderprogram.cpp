@@ -26,12 +26,13 @@ void printLog(GLuint obj) {
 		glGetShaderInfoLog(obj, 1024, &infologLength, infoLog);
 	else
 		glGetProgramInfoLog(obj, 1024, &infologLength, infoLog);
-    if (infologLength > 0)
+    if (infologLength > 0) 
 		printf("%s\n", infoLog);
     fflush(stdout);
 }
 
 void GLShaderProgram::loadShaderFromSource(GLenum type, std::string source) {
+
     stringstream ss;
     if(type == GL_FRAGMENT_SHADER)
 	ss << "#define _FRAGMENT_" << endl;

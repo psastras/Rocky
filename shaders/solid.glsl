@@ -1,4 +1,4 @@
-#version 150 core
+#version 400 core
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
 

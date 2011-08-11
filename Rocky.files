@@ -21,3 +21,4 @@ shaders/default.glsl
 shaders/recttess.glsl
 src/glperlinterrain.h
 src/glperlinterrain.cpp
+shaders/perlin.glsl
