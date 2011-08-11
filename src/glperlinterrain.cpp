@@ -28,6 +28,9 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
 }
 
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
+    
+    // create lookup textures
+    
     int permutation[] = { 151,160,137,91,90,15,
     131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
     190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
@@ -48,11 +51,31 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,
 	0,-1,-1,1,1,0,0,-1,1,-1,1,0,0,-1,-1,
     };
+    
+    GLuint textures[] = {0, 0};
+    glGenTextures(2, &textures[0]);
+    glBindTexture(GL_TEXTURE_1D, textures[0]);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexImage1D(GL_TEXTURE_1D, 0, 1, sizeof(permutation) / sizeof(int), 0, 
+		 GL_LUMINANCE, GL_INT, &permutation[0]);
+    glBindTexture(GL_TEXTURE_1D, textures[1]);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexImage1D(GL_TEXTURE_1D, 0, 1, sizeof(g) / sizeof(float) / 3, 0, 
+		 GL_RGB, GL_FLOAT, &g[0]);
+    glBindTexture(GL_TEXTURE_1D, 0);
+    
+    // create shaders
         
     perlinShader_ = new GLShaderProgram();
     perlinShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/perlin.glsl");
     perlinShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/perlin.glsl");
     perlinShader_->link();
+    
+    // create framebuffer
     
     GLFramebufferObjectParams params;
     params.width = params_.resolution;
@@ -63,17 +86,49 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     params.type = GL_TEXTURE_3D;
     params.nColorAttachments = GLFramebufferObject::queryMaxAttachments();
     params.format = 1;
-    GLFramebufferObject *fbo = new GLFramebufferObject(params);
+    framebuffer_ = new GLFramebufferObject(params);
     engine_->vsmlOrtho(params_.resolution, params_.resolution);
     
-    return;
+    // create quad
+    GLPrimitive *quad = new GLQuad(float3(1, 1, 0),
+				   float3(params.width * 0.5, params.height * 0.5, 0),
+				   float3(params.width, params.height, 1));
     
-    fbo->bind();
-    perlinShader_->bind();    
+    // draw
     
+    int width = engine_->width();
+    int height = engine_->height();
+    
+    glViewport(0, 0, params.width, params.height);
+    
+    framebuffer_->bind();
+    perlinShader_->bind(vsml);    
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_1D, textures[0]);
+    perlinShader_->setUniformValue("permutation", 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_1D, textures[1]);
+    perlinShader_->setUniformValue("gradient", 1);
+    glActiveTexture(GL_TEXTURE0);
+    
+    perlinShader_->setUniformValue("noiseScale", params_.scale);
+    perlinShader_->setUniformValue("octaves", params_.octaves);
+    perlinShader_->setUniformValue("lacunarity", params_.lacunarity);
+    perlinShader_->setUniformValue("gain", params_.gain);
+    perlinShader_->setUniformValue("offset", params_.offset);
+    
+    quad->draw(perlinShader_);
     
     perlinShader_->release();
-    fbo->release();
+    
+	    
+    framebuffer_->release();
+    
+    glViewport(0, 0, width, height); // restore the viewport
+    
+    glDeleteTextures(2, &textures[0]);
+    delete quad;
 }
 
 

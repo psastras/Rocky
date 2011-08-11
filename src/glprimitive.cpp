@@ -1,4 +1,5 @@
 #include "glprimitive.h"
+
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
 GLPrimitive::GLPrimitive(float3 &tess, float3 &translate, float3 &scale) : vertexId_(0), indexId_(0), arrayId_(0) {
@@ -7,19 +8,19 @@ GLPrimitive::GLPrimitive(float3 &tess, float3 &translate, float3 &scale) : verte
 }
 
 GLPrimitive::~GLPrimitive() {
-    glDeleteBuffers(1, &vertexId_);
-    glDeleteBuffers(1, &indexId_);
-    glDeleteVertexArrays(1, &arrayId_);
+    if(vertexId_) glDeleteBuffers(1, &vertexId_);
+    if(indexId_) glDeleteBuffers(1, &indexId_);
+    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
 }
 
 void GLPrimitive::draw(GLShaderProgram *program, int instances) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
     glVertexAttribPointer(program->getAttributeLocation("in_Position"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)0);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
     glVertexAttribPointer(program->getAttributeLocation("in_Normal"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)12);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
     glVertexAttribPointer(program->getAttributeLocation("in_TexCoord"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)24);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
@@ -39,11 +40,11 @@ void GLPrimitive::draw(GLShaderProgram *program, int instances) {
 void GLPrimitive::draw(GLShaderProgram *program) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
     glVertexAttribPointer(program->getAttributeLocation("in_Position"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)0);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
     glVertexAttribPointer(program->getAttributeLocation("in_Normal"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)12);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
     glVertexAttribPointer(program->getAttributeLocation("in_TexCoord"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)24);
+			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
@@ -63,16 +64,14 @@ void GLPrimitive::draw(GLShaderProgram *program) {
 void GLPrimitive::draw() {
      glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
      glEnableClientState(GL_VERTEX_ARRAY);
-     glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(vOffset_));   //The starting point of the VBO, for the vertices
+     glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(vOffset_));  
      glEnableClientState(GL_NORMAL_ARRAY);
-     glNormalPointer(GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(nOffset_));   //The starting point of normals, 12 bytes away
+     glNormalPointer(GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(nOffset_)); 
      glClientActiveTexture(GL_TEXTURE0);
      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-     glTexCoordPointer(3, GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(tOffset_));   //The starting point of texcoords, 24 bytes away
+     glTexCoordPointer(3, GL_FLOAT, sizeof(GLVertex), BUFFER_OFFSET(tOffset_));
      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
-     //To render, we can either use glDrawElements or glDrawRangeElements
-     //The is the number of indices. 3 indices needed to make a single triangle
-     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));   //The starting point of the IBO
+     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
      glDisableClientState(GL_VERTEX_ARRAY);
      glBindBuffer(GL_ARRAY_BUFFER, 0);
      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -186,7 +185,6 @@ void GLPlane::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
-    //byte offsets in the vertex struct...this may as well be hard coded for now.
     vOffset_ = 0;
     nOffset_ = 12;
     tOffset_ = 24;
@@ -197,6 +195,11 @@ GLIcosohedron::GLIcosohedron(float3 tess, float3 translate, float3 scale) : GLPr
 }
 
 void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
+    
+    if(vertexId_) glDeleteBuffers(1, &vertexId_);
+    if(indexId_) glDeleteBuffers(1, &indexId_);
+    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
+    
     type_ = GL_PATCHES;	
     typeCount_ = 3;
 
@@ -234,6 +237,10 @@ void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
     glGenBuffers(1, &indexId_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, pIndices, GL_STATIC_DRAW);
+    
+    vOffset_ = 0;
+    nOffset_ = 12;
+    tOffset_ = 24;
 }
 
 
@@ -284,7 +291,6 @@ void GLRect::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
-    //byte offsets in the vertex struct...this may as well be hard coded for now.
     vOffset_ = 0;
     nOffset_ = 12;
     tOffset_ = 24;

@@ -5,7 +5,8 @@ CC = g++
 ifeq ($(BUILD_TYPE), debug)
     CFLAGS = -Wall -g -std=c++0x
 else
-    CFLAGS = -O3 -msse2 -ffast-math -funswitch-loops -funsafe-math-optimizations -fsingle-precision-constant -funsafe-loop-optimizations -fgcse-sm -fgcse-las -fsee -std=c++0x
+    CFLAGS = -O3 -msse2 -ffast-math -funswitch-loops -funsafe-math-optimizations \
+    -fsingle-precision-constant -funsafe-loop-optimizations -fgcse-sm -fgcse-las -fsee -std=c++0x
 endif
 
 
@@ -20,7 +21,8 @@ SRCDIR := src
 VSMLDIR := 3rdparty/VSML
 
 INCLUDES = -IC:/Qt/qtcreator-2.2.82/mingw/include -I$(VSMLDIR)
-OBJFILES := $(patsubst $(VSMLDIR)/%.cpp,$(VSMLDIR)/%.o,$(wildcard $(VSMLDIR)/*.cpp)) $(patsubst $(SRCDIR)/%.cpp,$(SRCDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
+OBJFILES := $(patsubst $(VSMLDIR)/%.cpp,$(VSMLDIR)/%.o,$(wildcard $(VSMLDIR)/*.cpp)) \
+    $(patsubst $(SRCDIR)/%.cpp,$(SRCDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
 COMPILE = $(CC) $(CFLAGS) $(INCLUDES) -c
 
 all: water

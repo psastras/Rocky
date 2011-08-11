@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 	    WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, // Set our OpenGL context to be forward compatible
 	    0
     };
-    hRC = wglCreateContext(hDC);//wglCreateContextAttribsARB(hDC, NULL, attributes);
+    hRC = wglCreateContext(hDC);//wglCreateContextAttribsARB(hDC, NULL, attributes); @todo: this causes a link error with my glew :S
 
     wglMakeCurrent(hDC, hRC);
     glewInit();
@@ -183,8 +183,6 @@ int main(int argc, char *argv[]) {
     int glVersion[2] = {-1, -1}; // Set some default values for the version
     glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]); // Get back the OpenGL MAJOR version we are using
     glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]); // Get back the OpenGL MAJOR version we are using
-
-    std::cout << "Using OpenGL: " << glVersion[0] << "." << glVersion[1] << std::endl; // Output which version of OpenGL we are using
 
     while (1) {
 	while(PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE)) {
@@ -212,17 +210,33 @@ int main(int argc, char *argv[]) {
 	pEngine->draw(st.wMinute * 60 + st.wSecond + st.wMilliseconds / 1000.f,
 		      dt / 1000.f, pKeyController);
 	dt = GetCounter();
-
-	std::stringstream ss;
-	if(dt < 0) dt = 0.01; //@todo this is cause were overflowing max long i think?
-	ss << (int)(1000.0 / dt) << " fps";
-	const char *s = ss.str().c_str();
-	glPushAttrib(GL_LIST_BIT);
-	glRasterPos2f(10.f, 20.f);
-	glListBase(base);
-	glCallLists(ss.str().length(), GL_UNSIGNED_BYTE, s);
-	glListBase(0);
-	glPopAttrib();
+	
+	// text drawing
+	{
+	    std::stringstream ss;
+	    ss << "OpenGL " << glVersion[0] << "." << glVersion[1];
+	    const char *s = ss.str().c_str();
+	    glPushAttrib(GL_LIST_BIT);
+	    glRasterPos2f(10.f, 20.f);
+	    glListBase(base);
+	    glCallLists(ss.str().length(), GL_UNSIGNED_BYTE, s);
+	    glListBase(0);
+	    glPopAttrib();
+	}
+	
+	{
+	    std::stringstream ss;
+	    if(dt < 0) dt = 0.01;
+	    ss << (int)(1.0 / dt) << " fps"; //@todo: this fps is totally broken its kind of funny
+	    const char *s = ss.str().c_str();
+	    glPushAttrib(GL_LIST_BIT);
+	    glRasterPos2f(10.f, 40.f);
+	    glListBase(base);
+	    glCallLists(ss.str().length(), GL_UNSIGNED_BYTE, s);
+	    glListBase(0);
+	    glPopAttrib();
+	}
+	
 	glFinish();
 
 

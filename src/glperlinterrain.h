@@ -6,6 +6,7 @@
 
 class GLShaderProgram;
 class GLPrimitive;
+class GLFramebufferObject;
 class VSML;
 class GLEngine;
 
@@ -25,7 +26,10 @@ class GLPerlinTerrain
 {
 public:
     GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine);
-    void draw(VSML *vsml);
+    void draw (VSML *vsml);
+    
+    GLFramebufferObject *framebuffer() const { return framebuffer_; } //@todo: remove this
+    
 protected:
     
     void generateTerrain(VSML *vsml);
@@ -33,6 +37,7 @@ protected:
     GLuint tex_;
     GLPerlinTerrainParams params_;
     GLShaderProgram *drawShader_, *perlinShader_;
+    GLFramebufferObject *framebuffer_;
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
 };

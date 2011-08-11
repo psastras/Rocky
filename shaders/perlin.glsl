@@ -9,7 +9,7 @@ uniform float noiseScale;
 uniform int octaves;
 uniform float lacunarity;
 uniform float gain;
-uniform float anim;
+uniform float offset;
 
 #ifdef _VERTEX_
 
@@ -93,7 +93,7 @@ float ridgedmf(vec3 p, int octaves, float lacunarity, float gain, float offset) 
 
 
 void main() {
-	float h = ridgedmf(pass_WPosition, octaves, lacunarity, gain, anim);
+	float h = ridgedmf(pass_WPosition, octaves, lacunarity, gain, offset);
 	out_Color = vec4(h,h,h,1.0);
 }
 #endif
