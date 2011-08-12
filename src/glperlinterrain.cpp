@@ -64,7 +64,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glBindTexture(GL_TEXTURE_1D, textures[0]);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexImage1D(GL_TEXTURE_1D, 0, GL_R16F, sizeof(permutation) / sizeof(float), 0, 
 		 GL_LUMINANCE, GL_FLOAT, &permutation[0]);
     
@@ -72,7 +72,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glBindTexture(GL_TEXTURE_1D, textures[1]);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB16F, sizeof(g) / sizeof(float) / 3, 0, 
 		 GL_RGB, GL_FLOAT, &g[0]);
     glBindTexture(GL_TEXTURE_1D, 0);

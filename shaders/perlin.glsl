@@ -43,9 +43,9 @@ float grad(float x, vec3 p) {
 }
 
 float inoise(vec3 p) {
-	vec3 P = mod(floor(p), 256.0);	// FIND UNIT CUBE THAT CONTAINS POINT
-	p -= floor(p);                      // FIND RELATIVE X,Y,Z OF POINT IN CUBE.
-	vec3 f = fade(p);                 // COMPUTE FADE CURVES FOR EACH OF X,Y,Z.
+	vec3 P = mod(floor(p), 256.0);
+	p -= floor(p);
+	vec3 f = fade(p);
 	P = P / 256.0;
 	const float one = 1.0 / 256.0;
 	float A = perm(P.x) + P.y;
@@ -56,14 +56,13 @@ float inoise(vec3 p) {
 	AA.z = perm(B) + P.z;
 	AA.w = perm(B + one) + P.z;
 	return mix(mix(mix(grad(perm(AA.x),p),  
-			   grad(perm(AA.z),p + vec3(-1, 0, 0) ), f.x),
-		       mix(grad(perm(AA.y),p + vec3(0, -1, 0) ),
-			   grad(perm(AA.w),p + vec3(-1, -1, 0) ), f.x), f.y),
-			     
-		 mix( mix( grad(perm(AA.x+one), p + vec3(0, 0, -1) ),
-			     grad(perm(AA.z+one), p + vec3(-1, 0, -1) ), f.x),
-		       mix( grad(perm(AA.y+one), p + vec3(0, -1, -1) ),
-			     grad(perm(AA.w+one), p + vec3(-1, -1, -1) ), f.x), f.y), f.z);
+			   grad(perm(AA.z),p + vec3(-1,0,0)), f.x),
+		       mix(grad(perm(AA.y),p + vec3(0,-1,0)),
+			   grad(perm(AA.w),p + vec3(-1,-1,0)), f.x), f.y),
+		 mix(mix(grad(perm(AA.x+one), p + vec3(0,0,-1)),
+			     grad(perm(AA.z+one), p + vec3(-1,0,-1)),f.x),
+		       mix(grad(perm(AA.y+one), p + vec3(0,-1,-1)),
+			     grad(perm(AA.w+one), p + vec3(-1,-1,-1)),f.x), f.y), f.z);
 }
 
 float ridge(float h, float offset) {
@@ -89,8 +88,11 @@ float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 
 
 void main() {
-	out_Color = ridgedmf(pass_TexCoord, octaves, lacunarity, gain, offset);
-	out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x) / 255.0;
+	float h = (ridgedmf(pass_TexCoord, octaves, lacunarity, gain, offset));
+	//if(h>=0.0) out_Color = 1.0;
+	//else out_Color = 0.5;
+	out_Color = h;
+	//out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x) / 255.0;
 }
 #endif
 
