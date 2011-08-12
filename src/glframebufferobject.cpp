@@ -84,7 +84,7 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 		glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, params.format, params.width, params.height, 0, GL_LUMINANCE, GL_FLOAT, 0);
-	        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, color_[i], 0);
+	        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, color_[i], 0);
 	    }
 
 	    glBindTexture(params.type, 0);
@@ -94,14 +94,19 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	     
 	    glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	    glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	    
+	    float *data = new float[params.width * params.height * params.nColorAttachments];
+	    for(int i=0; i<params.width * params.height * params.nColorAttachments; i++) {
+		data[i] = 0.5f;
+	    }
 	    glTexImage3D(params.type, 0, params.format, params.width, params.height, 
-			 params.nColorAttachments, 0, GL_LUMINANCE, GL_FLOAT, 0);
-	    GLERROR("creating framebuffer object - ");
+			 params.nColorAttachments, 0, GL_LUMINANCE, GL_FLOAT, &data[0]);
 	    for(int i=0; i<params.nColorAttachments; i++) {
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, color_[0], 0, i);
+		//glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_3D, color_[0], 0, i);
 	    }
-	    GLERROR("creating framebuffer object -- ");
+	    delete[] data;
+	    glBindTexture(params.type, 0);
+	    
 	}
     }
 
@@ -123,12 +128,13 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	    glTexParameterf(params.type, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	    glTexParameteri(params.type, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 	    glTexImage2D(params.type, 0, params.depthFormat, params.width, params.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_, 0);
+	    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_, 0);
 	    glBindTexture(params.type, 0);
 	}
 
     }
     //if(glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) == GL_FRAMEBUFFER_COMPLETE_EXT) { cerr << "herp derp" << endl; }
+    //else cerr << "oops" << endl;
     this->release();
 }
 
@@ -166,16 +172,16 @@ GLuint GLFramebufferObject::depth() {
 }
 
 void GLFramebufferObject::bind() {
-     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, id_);
+     glBindFramebuffer(GL_FRAMEBUFFER, id_);
 }
 
 void GLFramebufferObject::release() {
-     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 int GLFramebufferObject::queryMaxSamples() {
     GLint maxSamples = 0;
-    glGetIntegerv(GL_MAX_SAMPLES_EXT, &maxSamples);
+    glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
     return maxSamples;
 }
 

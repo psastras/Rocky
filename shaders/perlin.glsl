@@ -5,6 +5,7 @@ uniform sampler1D gradient;
 
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
+
 uniform float noiseScale;
 uniform int octaves;
 uniform float lacunarity;
@@ -17,12 +18,9 @@ in vec3 in_Position;
 in vec3 in_Normal;
 in vec3 in_TexCoord;
 out vec3 pass_TexCoord;
-out vec3 pass_HPosition;
-out vec3 pass_WPosition;
 void main() {
-    pass_HPosition = (vec4(in_Position, 1.0) * modelviewMatrix).xyz;
     pass_TexCoord = in_TexCoord * noiseScale;
-    pass_WPosition = (projMatrix * modelviewMatrix * vec4(in_Position, 1.0) * noiseScale).xyz;
+    gl_Position = projMatrix * modelviewMatrix * vec4(in_Position,1.0);
 }
 
 #endif
@@ -30,9 +28,7 @@ void main() {
 
 #ifdef _FRAGMENT_
 in vec3 pass_TexCoord;
-in vec3 pass_HPosition;
-in vec3 pass_WPosition;
-out vec4 out_Color;
+out float out_Color;
 
 vec3 fade(vec3 t) {
 	return t * t * t * (t * (t * 6 - 15) + 10); // new curve
@@ -77,24 +73,24 @@ float ridge(float h, float offset) {
     return h;
 }
 
-float ridgedmf(vec3 p, int octaves, float lacunarity, float gain, float offset) {
+float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 	float sum = 0;
 	float freq = 1.0, amp = 0.5;
 	float prev = 1.0;
-	for(int i=0; i<octaves; i++) {
-		float n = ridge(inoise(p*freq), offset);
+	for(int i=0; i<noctaves; i++) {
+		float n = ridge(inoise(p*freq), off);
 		sum += n*amp*prev;
 		prev = n;
-		freq *= lacunarity;
-		amp *= gain;
+		freq *= lac;
+		amp *= g;
 	}
 	return sum;
 }
 
 
 void main() {
-	float h = ridgedmf(pass_WPosition, octaves, lacunarity, gain, offset);
-	out_Color = vec4(h,h,h,1.0);
+	out_Color = ridgedmf(pass_TexCoord, octaves, lacunarity, gain, offset);
+	out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x) / 255.0;
 }
 #endif
 

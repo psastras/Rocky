@@ -1,6 +1,6 @@
 #version 400 core
 
-uniform sampler2D tex;
+uniform sampler3D tex;
 
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
@@ -19,9 +19,9 @@ void main(void) {
 
 #ifdef _FRAGMENT_
 in vec3 pass_TexCoord;
-out vec4 out_Color;
+out vec3 out_Color;
 void main() {
-    vec4 color = texture2D(tex, pass_TexCoord.st);
+    vec3 color = texture(tex, vec3(pass_TexCoord.st, 1.0)).xxx;
     out_Color = color;//vec4(abs(pass_TexCoord.s),abs(pass_TexCoord.t),0.0,0.0);
 }
 #endif

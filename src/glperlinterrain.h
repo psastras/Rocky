@@ -19,7 +19,7 @@ struct GLPerlinTerrainParams {
     
     // noise settings
     int resolution, octaves;
-    float gain, lacunarity, offset;
+    float gain, lacunarity, offset, noiseScale;
 };
 
 class GLPerlinTerrain
