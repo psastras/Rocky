@@ -15,7 +15,7 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(10, 0, 10),
+    terrain_ = new GLRect(float3(1, 0, 1),
 			 float3(0, 0, 0),
 			 float3(100, 1, 100));
     
@@ -28,6 +28,46 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
 }
 
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
+  
+    int maxAttachments = GLFramebufferObject::queryMaxAttachments();
+    instances_ = params_.grid.x * params_.grid.y;
+    int noBuffers = (int)ceilf(instances_ / (float)maxAttachments);
+    framebuffers_ = new GLFramebufferObject*[noBuffers];
+    
+    //create the framebuffer
+    
+    GLFramebufferObjectParams params;
+    params.width = params_.resolution;
+    params.height = params_.resolution;
+    
+    params.hasDepth = false;
+    params.nSamples = 0;
+    params.type = GL_TEXTURE_3D;
+    params.nColorAttachments = 0;
+    params.format = GL_R16F;
+    
+    //create the 3d textire
+    glGenTextures(1, &tex_);
+    glBindTexture(GL_TEXTURE_3D, tex_);
+    glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, params_.resolution, params_.resolution, 
+		 instances_, 0, GL_LUMINANCE, GL_FLOAT, 0);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
+    // manually attach 3d layers to the framebuffers
+    for(int i=0, k=0;i<noBuffers;i++) {
+	framebuffers_[i] = new GLFramebufferObject(params);
+	framebuffers_[i]->bind();
+	glBindTexture(GL_TEXTURE_3D, tex_);
+	for(int j=0; j<maxAttachments; j++, k++) {
+	    if(k >= instances_) break;
+	     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, tex_, 0, k);
+	}
+	glBindTexture(GL_TEXTURE_3D, 0);
+	framebuffers_[i]->release();
+    }
+    
     
     // create lookup textures
     
@@ -45,22 +85,13 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
     138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
     };
-//    for(int i=0;i<sizeof(permutation)/sizeof(float);i++)
-	//permutation[i] /= 255.0f;
     
     // gradients for 3d noise
-    float g[] = {
-	1,1,0,
-	-1,1,0,
-	1,-1,0,
-	-1,-1,0,
-	1,0,1,
-	-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,
-	0,-1,-1,1,1,0,0,-1,1,-1,1,0,0,-1,-1,
-    };
+    float g[] = {1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,
+		 0,-1,1,0,1,-1,	0,-1,-1,1,1,0,0,-1,1,-1,1,0,0,-1,-1};
     
     for(int i=0;i<256;i++) permutation[i] /= 255.0;
-    
+        
     GLuint textures[] = {0, 0};
     glGenTextures(2, &textures[0]);
     glBindTexture(GL_TEXTURE_1D, textures[0]);
@@ -70,7 +101,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glTexImage1D(GL_TEXTURE_1D, 0, GL_R16F, sizeof(permutation) / sizeof(float), 0, 
 		 GL_LUMINANCE, GL_FLOAT, &permutation[0]);
     
-    
+
     glBindTexture(GL_TEXTURE_1D, textures[1]);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -87,17 +118,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     perlinShader_->link();
     
     // create framebuffer
-    
-    GLFramebufferObjectParams params;
-    params.width = params_.resolution;
-    params.height = params_.resolution;
-    
-    params.hasDepth = false;
-    params.nSamples = 0;
-    params.type = GL_TEXTURE_3D;
-    params.nColorAttachments = 1;//GLFramebufferObject::queryMaxAttachments();
-    params.format = GL_R32F;
-    framebuffer_ = new GLFramebufferObject(params);
+   
 
     
     // create quad
@@ -112,36 +133,38 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     
     glViewport(0, 0, params.width, params.height);
     engine_->vsmlOrtho(params_.resolution, params_.resolution);
-    //glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    framebuffer_->bind();
-   
-    glClearColor(0.1f, 0.1f, 0.1f, 0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    
-    perlinShader_->bind(vsml);    
-  
-    //std::cout << textures[0] << std::endl;
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_1D, textures[0]);
-    perlinShader_->setUniformValue("permutation", 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_1D, textures[1]);
-    perlinShader_->setUniformValue("gradient", 1);
-    glActiveTexture(GL_TEXTURE0);
-    
-    perlinShader_->setUniformValue("noiseScale", params_.noiseScale);
-    perlinShader_->setUniformValue("octaves", params_.octaves);
-    perlinShader_->setUniformValue("lacunarity", params_.lacunarity);
-    perlinShader_->setUniformValue("gain", params_.gain);
-    perlinShader_->setUniformValue("offset", params_.offset);
 
-    quad->draw(perlinShader_);
+    for(int i=0; i<noBuffers; i++) { //todo: need to set MRT fragment outs
+	framebuffers_[i]->bind();
+	
+	
+	perlinShader_->bind(vsml);    
+      
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_1D, textures[0]);
+	perlinShader_->setUniformValue("permutation", 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, textures[1]);
+	perlinShader_->setUniformValue("gradient", 1);
+	glActiveTexture(GL_TEXTURE0);
+	
+	perlinShader_->setUniformValue("noiseScale", params_.noiseScale);
+	perlinShader_->setUniformValue("octaves", params_.octaves);
+	perlinShader_->setUniformValue("lacunarity", params_.lacunarity);
+	perlinShader_->setUniformValue("gain", params_.gain);
+	perlinShader_->setUniformValue("offset", params_.offset);
+	
+	quad->draw(perlinShader_);
+	
+	perlinShader_->release();
+	
+	framebuffers_[i]->release();
     
-    perlinShader_->release();
+    }
+
      
 	    
-    framebuffer_->release();
+    
     glViewport(0, 0, width, height); // restore the viewport
     glBindTexture(GL_TEXTURE_1D, 0);
     glDeleteTextures(2, &textures[0]);
@@ -155,10 +178,14 @@ void GLPerlinTerrain::draw(VSML *vsml) {
     float tess = (float)min((max((int)(distance * 500), 3)), 25);
     
     drawShader_->bind(vsml);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, tex_);
+    drawShader_->setUniformValue("tex", 0);
     drawShader_->setUniformValue("TessLevelInner", tess);
     drawShader_->setUniformValue("TessLevelOuter", tess);
-    drawShader_->setUniformValue("grid", float2(4, 4));
+    drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     drawShader_->setUniformValue("D", terrain_->scale().x);
-    terrain_->draw(drawShader_, 16);
+    terrain_->draw(drawShader_, instances_);
+    glBindTexture(GL_TEXTURE_3D, 0);
     drawShader_->release();
 }

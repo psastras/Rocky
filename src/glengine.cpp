@@ -87,7 +87,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     GLPerlinTerrainParams paramsT;
     paramsT.resolution = 1024;
     paramsT.gain = 0.15;
-    paramsT.instances = 1;
+    paramsT.grid = float2(2,2);
     paramsT.lacunarity = 3.07;
     paramsT.offset = 1.307;
     paramsT.noiseScale = 2.95;
@@ -120,7 +120,6 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     
     this->vsmlPersepective();
 
-   //begin icos test
     pMultisampleFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
@@ -144,11 +143,9 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     this->vsmlOrtho();
     shaderPrograms_["default"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
-    //pFramebuffer->bindsurface(0);
-    terrain_->framebuffer()->bindsurface(0);
+    pFramebuffer->bindsurface(0);
     shaderPrograms_["default"]->setUniformValue("tex", 0);
     primtives_["quad1"]->draw(shaderPrograms_["default"]);
-    //terrain_->framebuffer()->unbindsurface();
     pFramebuffer->unbindsurface();
     shaderPrograms_["default"]->release();
 

@@ -15,7 +15,7 @@ struct GLPerlinTerrainParams {
     // geometry settings
     float3 tess;
     float2 scale;
-    int instances;
+    float2 grid;
     
     // noise settings
     int resolution, octaves;
@@ -28,16 +28,16 @@ public:
     GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine);
     void draw (VSML *vsml);
     
-    GLFramebufferObject *framebuffer() const { return framebuffer_; } //@todo: remove this
+    GLFramebufferObject *framebuffer() const { return framebuffers_[0]; } //@todo: remove this
     
 protected:
     
     void generateTerrain(VSML *vsml);
-    
+    int instances_;
     GLuint tex_;
     GLPerlinTerrainParams params_;
     GLShaderProgram *drawShader_, *perlinShader_;
-    GLFramebufferObject *framebuffer_;
+    GLFramebufferObject **framebuffers_;
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
 };

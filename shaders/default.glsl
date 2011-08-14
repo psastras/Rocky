@@ -1,6 +1,6 @@
 #version 400 core
 
-uniform sampler3D tex;
+uniform sampler2D tex;
 
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
@@ -21,7 +21,10 @@ void main(void) {
 in vec3 pass_TexCoord;
 out vec3 out_Color;
 void main() {
-    vec3 color = texture(tex, vec3(pass_TexCoord.st, 1.0)).xxx;
+    vec3 color = texture(tex, pass_TexCoord.st).xyz;
     out_Color = color;//vec4(abs(pass_TexCoord.s),abs(pass_TexCoord.t),0.0,0.0);
 }
 #endif
+
+
+//vec3 color = texture(tex, vec3(pass_TexCoord.st, 1.0)).xxx;

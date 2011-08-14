@@ -44,7 +44,7 @@ void GLFramebufferObject::bindsurface(int idx) {
 // @todo: add stencil buffer support and error handling (esp. for nonsupported formats)
 void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
     glGenFramebuffersEXT(1, &id_);
-
+    if(params.nColorAttachments) return;
     this->bind();
     
     if(params.type == GL_TEXTURE_2D)
@@ -94,17 +94,13 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	     
 	    glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	    glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	    float *data = new float[params.width * params.height * params.nColorAttachments];
-	    for(int i=0; i<params.width * params.height * params.nColorAttachments; i++) {
-		data[i] = 0.5f;
-	    }
+
 	    glTexImage3D(params.type, 0, params.format, params.width, params.height, 
-			 params.nColorAttachments, 0, GL_LUMINANCE, GL_FLOAT, &data[0]);
+			 params.nColorAttachments, 0, GL_LUMINANCE, GL_FLOAT, 0);
 	    for(int i=0; i<params.nColorAttachments; i++) {
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, color_[0], 0, i);
 		//glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_3D, color_[0], 0, i);
 	    }
-	    delete[] data;
 	    glBindTexture(params.type, 0);
 	    
 	}

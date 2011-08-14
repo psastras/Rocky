@@ -3,6 +3,7 @@
 uniform sampler1D permutation;
 uniform sampler1D gradient;
 
+
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
 
