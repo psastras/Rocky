@@ -267,7 +267,7 @@ void GLRect::tesselate(float3 tess, float3 translate, float3 scale) {
 	for(int x=0; x<=tess.x; x++, i++) {
 	    pVertex[i].p = float3(-0.5, 0.0, -0.5) * scale + translate + delta * float3(x, 0, z);
 	    pVertex[i].n = float3(0.0, 1.0, 0.0);
-	    pVertex[i].t = float3(x, z, 0) * tdelta;
+	    pVertex[i].t = float3(x*tdelta.x, z*tdelta.z, 0);
 	}
     }
     glGenBuffers(1, &vertexId_);

@@ -29,7 +29,11 @@ void main() {
 
 #ifdef _FRAGMENT_
 in vec3 pass_TexCoord;
-out float out_Color;
+out float out_Color0;
+out float out_Color1;
+out float out_Color2;
+out float out_Color3;
+
 
 vec3 fade(vec3 t) {
 	return t * t * t * (t * (t * 6 - 15) + 10); // new curve
@@ -89,11 +93,11 @@ float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 
 
 void main() {
-	float h = (ridgedmf(vec3(pass_TexCoord.x, pass_TexCoord.y, 0.0), octaves, lacunarity, gain, offset));
-	//if(h>=0.0) out_Color = 1.0;
-	//else out_Color = 0.5;
-	out_Color = h;
-	//out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x);
+	float h0 = ridgedmf(vec3(pass_TexCoord.st, 0.0), octaves, lacunarity, gain, offset);
+	out_Color0 = h0;
+	out_Color1 = h0;
+	out_Color2 = h0;
+	out_Color3 = h0;
 }
 #endif
 

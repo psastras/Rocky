@@ -85,7 +85,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
     
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 1024;
+    paramsT.resolution = 2048;
     paramsT.gain = 0.15;
     paramsT.grid = float2(2,2);
     paramsT.lacunarity = 3.07;

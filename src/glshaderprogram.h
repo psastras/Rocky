@@ -35,6 +35,8 @@ public:
 	return attributes_[name];
     }
 
+    
+    
 
     inline void setGeometryInputType(GLenum type) {
 	glProgramParameteriEXT(programId_, GL_GEOMETRY_INPUT_TYPE_EXT, type);
