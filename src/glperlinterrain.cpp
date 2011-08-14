@@ -59,6 +59,8 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	0,-1,-1,1,1,0,0,-1,1,-1,1,0,0,-1,-1,
     };
     
+    for(int i=0;i<256;i++) permutation[i] /= 255.0;
+    
     GLuint textures[] = {0, 0};
     glGenTextures(2, &textures[0]);
     glBindTexture(GL_TEXTURE_1D, textures[0]);

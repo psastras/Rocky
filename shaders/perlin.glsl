@@ -46,7 +46,7 @@ float inoise(vec3 p) {
 	vec3 P = mod(floor(p), 256.0);
 	p -= floor(p);
 	vec3 f = fade(p);
-	P = P / 256.0;
+	P /= 256.0;
 	const float one = 1.0 / 256.0;
 	float A = perm(P.x) + P.y;
 	vec4 AA;
@@ -88,11 +88,11 @@ float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 
 
 void main() {
-	float h = (ridgedmf(pass_TexCoord, octaves, lacunarity, gain, offset));
+	float h = (ridgedmf(vec3(pass_TexCoord.x, pass_TexCoord.y, 0.0), octaves, lacunarity, gain, offset));
 	//if(h>=0.0) out_Color = 1.0;
 	//else out_Color = 0.5;
 	out_Color = h;
-	//out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x) / 255.0;
+	//out_Color = abs(texture(permutation, pass_TexCoord.x/noiseScale).x);
 }
 #endif
 
