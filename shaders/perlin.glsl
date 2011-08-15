@@ -13,6 +13,9 @@ uniform float lacunarity;
 uniform float gain;
 uniform float offset;
 
+uniform vec2 scale; //the scale of the tile (in world space)
+uniform vec2 offsets[8]; //the offsets of the tiles (in world space)
+
 #ifdef _VERTEX_
 
 in vec3 in_Position;
@@ -20,7 +23,7 @@ in vec3 in_Normal;
 in vec3 in_TexCoord;
 out vec3 pass_TexCoord;
 void main() {
-    pass_TexCoord = in_TexCoord * noiseScale;
+    pass_TexCoord = in_TexCoord;
     gl_Position = projMatrix * modelviewMatrix * vec4(in_Position,1.0);
 }
 
@@ -33,6 +36,10 @@ out float out_Color0;
 out float out_Color1;
 out float out_Color2;
 out float out_Color3;
+out float out_Color4;
+out float out_Color5;
+out float out_Color6;
+out float out_Color7;
 
 
 vec3 fade(vec3 t) {
@@ -88,16 +95,27 @@ float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 		freq *= lac;
 		amp *= g;
 	}
-	return sum;
+	return sum-0.5;
 }
 
 
 void main() {
-	float h0 = ridgedmf(vec3(pass_TexCoord.st, 0.0), octaves, lacunarity, gain, offset);
+	float h0 = ridgedmf(vec3((pass_TexCoord.st+offsets[0])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h1 = ridgedmf(vec3((pass_TexCoord.st+offsets[1])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h2 = ridgedmf(vec3((pass_TexCoord.st+offsets[2])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h3 = ridgedmf(vec3((pass_TexCoord.st+offsets[3])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h4 = ridgedmf(vec3((pass_TexCoord.st+offsets[4])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h5 = ridgedmf(vec3((pass_TexCoord.st+offsets[5])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h6 = ridgedmf(vec3((pass_TexCoord.st+offsets[6])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
+	float h7 = ridgedmf(vec3((pass_TexCoord.st+offsets[7])*noiseScale, 0.0), octaves, lacunarity, gain, offset);
 	out_Color0 = h0;
-	out_Color1 = h0;
-	out_Color2 = h0;
-	out_Color3 = h0;
+	out_Color1 = h1;
+	out_Color2 = h2;
+	out_Color3 = h3;
+	out_Color4 = h4;
+	out_Color5 = h5;
+	out_Color6 = h6;
+	out_Color7 = h7;
 }
 #endif
 

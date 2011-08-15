@@ -42,7 +42,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.height = properties.height;
     params.hasDepth = true;
     params.depthFormat = GL_DEPTH_COMPONENT;
-    params.format = GL_RGBA;
+    params.format = GL_RGBA16F;
     params.nColorAttachments = 1;
     params.nSamples = GLFramebufferObject::queryMaxSamples();
     params.type = GL_TEXTURE_2D;
@@ -50,7 +50,6 @@ GLEngine::GLEngine(WindowProperties &properties) {
 
     params.hasDepth = false;
     params.nSamples = 0;
-    params.format = GL_RGBA;
 
     pFramebuffer = new GLFramebufferObject(params);
 
@@ -85,14 +84,14 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
     
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 2048;
-    paramsT.gain = 0.15;
-    paramsT.grid = float2(2,2);
-    paramsT.lacunarity = 3.07;
-    paramsT.offset = 1.307;
-    paramsT.noiseScale = 2.95;
+    paramsT.resolution = 512;
+    paramsT.gain = 0.61;
+    paramsT.grid = float2(16,16);
+    paramsT.lacunarity = 1.7;
+    paramsT.offset = 1;
+    paramsT.noiseScale = .1;
     paramsT.tess = 512;
-    paramsT.octaves = 8;
+    paramsT.octaves = 11;
     terrain_ = new GLPerlinTerrain(paramsT, this);
 }
 
@@ -129,7 +128,7 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     float tess = (float)max((int)(distance * 10000), 3);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
-    primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
+  //  primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
     terrain_->draw(vsml_);
     pMultisampleFramebuffer->release();
@@ -173,7 +172,7 @@ void GLEngine::vsmlPersepective() {
     vsml_->translate(-camera_.eye.x, -camera_.eye.y, -camera_.eye.z);
 }
 
-float sensitivity = 0.000001f;
+float sensitivity = 0.000005f;
 void GLEngine::mouseMove(float dx, float dy, float dt) {
     if(dt == 0.f) return;
     float deltax = -dx*sensitivity/dt;

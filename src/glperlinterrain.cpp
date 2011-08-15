@@ -11,11 +11,12 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_ = new GLShaderProgram();
     drawShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/recttess.glsl");
+    drawShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(10, 0, 10),
+    terrain_ = new GLRect(float3(5, 0, 5),
 			 float3(0, 0, 0),
 			 float3(100, 1, 100));
     
@@ -128,13 +129,22 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     
     // draw
     
+    float2 *offsets = new float2[instances_ + (instances_ % 8)];
+    for(int x=0, i=0; x<params_.grid.x; x++) {
+	for(int y=0; y<params_.grid.y; y++, i++) {
+	    offsets[i] = float2(x,y);
+	}
+    }
+    
     int width = engine_->width();
     int height = engine_->height();
     
     glViewport(0, 0, params.width, params.height);
     engine_->vsmlOrtho(params_.resolution, params_.resolution);
-    GLenum outputTex[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-			   GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3}; 
+    GLenum outputTex[8] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+			   GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+			   GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+			   GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7}; 
     for(int i=0; i<noBuffers; i++) { //todo: need to set MRT fragment outs
 	framebuffers_[i]->bind();
 	
@@ -154,12 +164,14 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	perlinShader_->setUniformValue("lacunarity", params_.lacunarity);
 	perlinShader_->setUniformValue("gain", params_.gain);
 	perlinShader_->setUniformValue("offset", params_.offset);
+	perlinShader_->setUniformValue("scale", params_.scale);
+	perlinShader_->setUniformValue("offsets", &offsets[8*i], 8);
 	perlinShader_->setFragDataLocation("out_Color0", 0);
 	perlinShader_->setFragDataLocation("out_Color1", 1);
 	perlinShader_->setFragDataLocation("out_Color2", 2);
 	perlinShader_->setFragDataLocation("out_Color3", 3);
 	
-	glDrawBuffers(4, outputTex); 
+	glDrawBuffers(8, outputTex); 
 	quad->draw(perlinShader_);
 	
 	perlinShader_->release();
@@ -176,6 +188,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glBindTexture(GL_TEXTURE_1D, 0);
     glDeleteTextures(2, &textures[0]);
     delete quad;
+    delete[] offsets;
 }
 
 
@@ -190,6 +203,7 @@ void GLPerlinTerrain::draw(VSML *vsml) {
     drawShader_->setUniformValue("tex", 0);
     drawShader_->setUniformValue("TessLevelInner", tess);
     drawShader_->setUniformValue("TessLevelOuter", tess);
+    drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
     drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     drawShader_->setUniformValue("D", terrain_->scale().x);
     terrain_->draw(drawShader_, instances_);

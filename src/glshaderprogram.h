@@ -45,6 +45,10 @@ public:
     inline void setGeometryOutputType(GLenum type) {
 	glProgramParameteriEXT(programId_, GL_GEOMETRY_OUTPUT_TYPE_EXT, type);
     }
+    
+    inline void setUniformValue(const char *name, float2 *vals, int n) {
+	glUniform2fv(getUniformLocation(name), n, &vals->x);
+    }
 
     inline void setUniformValue(const char *name, float2 val) {
 	glUniform2fv(getUniformLocation(name), 1, &val.x);
