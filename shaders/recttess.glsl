@@ -21,6 +21,7 @@ void main() {
     vInstance = gl_InstanceID;
     vTexCoord = in_TexCoord;
     vPosition.xz += vec2(D*idxX,D*idxY);
+    gl_Position.xz = vPosition.xz;
 }
 
 #endif
@@ -36,26 +37,37 @@ out vec3 tcTexCoord[];
 uniform float TessLevelInner;
 uniform float TessLevelOuter;
 
-//@todo: inner level should be det by distance to camera (in shader), while oter remain
-// uniform
+float lod(vec3 pos) {
+    vec3 distance = cameraPos.xyz-(pos.xyz*0.5);
+    //distance /= 3.0;
+    distance *= 0.04; //bigger = lower tesselation
+    float d = 20.0 - clamp(length(distance), 0.0, 19.0);
+    return d;
+}
+
 
 void main() {
-    
-    vec3 distance = abs(cameraPos.xyz*3.0 - vPosition[0].xyz - vPosition[1].xyz - vPosition[2].xyz);
-    //distance /= 3.0;
-    distance *= 0.025; //bigger = lower tesselation
-    float d = 20.0 - clamp(length(distance), 0.0, 20.0);
-    
     tcPosition[gl_InvocationID] = vPosition[gl_InvocationID];
     tcInstance[gl_InvocationID] = vInstance[gl_InvocationID];
     tcTexCoord[gl_InvocationID] = vTexCoord[gl_InvocationID];
     if (gl_InvocationID == 0) {
-	gl_TessLevelInner[0] = int(d);
-	gl_TessLevelInner[1] = int(d);
-	gl_TessLevelOuter[0] = int(d);
-	gl_TessLevelOuter[1] = int(d);
-	gl_TessLevelOuter[2] = int(d);
-	gl_TessLevelOuter[3] = int(d);
+	
+	vec3 v0 = vPosition[0].xyz;
+	vec3 v1 = vPosition[1].xyz;
+	vec3 v2 = vPosition[2].xyz;
+	vec3 v3 = vPosition[3].xyz;
+	float lod1 = lod(v0+v1);
+	float lod2 = lod(v1+v2);
+	float lod3 = lod(v2+v3);
+	float lod0 = lod(v3+v0);
+	
+	gl_TessLevelInner[0] = mix(lod1,lod2,0.5);
+	gl_TessLevelInner[1] = mix(lod0,lod3,0.5);
+	
+	gl_TessLevelOuter[2] = lod0;
+	gl_TessLevelOuter[1] = lod1;
+	gl_TessLevelOuter[0] = lod2;
+	gl_TessLevelOuter[3] = lod3;
     }
 }
 
@@ -66,7 +78,8 @@ layout(quads, equal_spacing, cw) in;
 in vec3 tcPosition[];
 in int tcInstance[];
 in vec3 tcTexCoord[];
-out vec3 gTexCoord;
+out vec3 fTexCoord;
+uniform float heightScale = 100.0;
 void main() {
     float u = gl_TessCoord.x, v = gl_TessCoord.y;
     vec3 a = mix(tcPosition[1], tcPosition[0], u);
@@ -81,43 +94,14 @@ void main() {
     float instances = grid.x * grid.y;
     float z = (tcInstance[1]  + 0.5) / instances; //gl_InvocationID / instances
     float prec = 0.001;
-    gTexCoord = vec3(clamp(tc.st, prec, 1.0-prec),z);
+    fTexCoord = vec3(clamp(tc.st, prec, 1.0-prec),z);
+    tePosition.y += texture(tex, fTexCoord).x * heightScale;
     gl_Position = projMatrix * modelviewMatrix * vec4(tePosition, 1);
+    
 }
 
 #endif
 
-#ifdef _GEOMETRY_
-
-layout(triangles) in;
-layout(triangle_strip, max_vertices = 3) out;
-in vec3 tePosition[3];
-in vec3 tePatchDistance[3];
-in vec3 gTexCoord[3];
-out vec3 fTexCoord;
-
-uniform float heightScale = 250.0;
-
-void main() {
-    
-    fTexCoord = gTexCoord[0];
-    gl_Position = gl_in[0].gl_Position; 
-    gl_Position.y += texture(tex, fTexCoord).x * heightScale;
-    EmitVertex();
-    
-    fTexCoord = gTexCoord[1];
-    gl_Position = gl_in[1].gl_Position; 
-    gl_Position.y += texture(tex, fTexCoord).x * heightScale;
-    EmitVertex();
-    
-    fTexCoord = gTexCoord[2];
-    gl_Position = gl_in[2].gl_Position; 
-    gl_Position.y += texture(tex, fTexCoord).x * heightScale;
-    EmitVertex();
-    EndPrimitive();
-}
-
-#endif
 
 #ifdef _FRAGMENT_
 in vec3 fTexCoord;

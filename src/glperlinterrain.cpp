@@ -11,12 +11,12 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_ = new GLShaderProgram();
     drawShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/recttess.glsl");
-    drawShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/recttess.glsl");
+   // drawShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(5, 0, 5),
+    terrain_ = new GLRect(float3(4, 0, 4),
 			 float3(0, 0, 0),
 			 float3(100, 1, 100));
     
