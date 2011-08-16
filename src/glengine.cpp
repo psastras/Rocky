@@ -86,7 +86,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     GLPerlinTerrainParams paramsT;
     paramsT.resolution = 512;
     paramsT.gain = 0.61;
-    paramsT.grid = float2(16,16);
+    paramsT.grid = float2(20,20);
     paramsT.lacunarity = 1.7;
     paramsT.offset = 1;
     paramsT.noiseScale = .1;

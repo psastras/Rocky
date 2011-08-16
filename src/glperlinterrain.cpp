@@ -52,6 +52,9 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glBindTexture(GL_TEXTURE_3D, tex_);
     glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, params_.resolution, params_.resolution, 
 		 instances_, 0, GL_LUMINANCE, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_3D, 0);
@@ -132,7 +135,8 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     float2 *offsets = new float2[instances_ + (instances_ % 8)];
     for(int x=0, i=0; x<params_.grid.x; x++) {
 	for(int y=0; y<params_.grid.y; y++, i++) {
-	    offsets[i] = float2(x,y);
+	    offsets[i] = float2(x-1.0/params_.resolution*x,
+				y-1.0/params_.resolution*y);
 	}
     }
     

@@ -41,7 +41,7 @@ float lod(vec3 pos) {
     vec3 distance = cameraPos.xyz-(pos.xyz*0.5);
     //distance /= 3.0;
     distance *= 0.04; //bigger = lower tesselation
-    float d = 20.0 - clamp(length(distance), 0.0, 19.0);
+    float d = 20.0 - clamp(length(distance), 0.0, 20.0);
     return d;
 }
 
@@ -56,6 +56,7 @@ void main() {
 	vec3 v1 = vPosition[1].xyz;
 	vec3 v2 = vPosition[2].xyz;
 	vec3 v3 = vPosition[3].xyz;
+	
 	float lod1 = lod(v0+v1);
 	float lod2 = lod(v1+v2);
 	float lod3 = lod(v2+v3);
@@ -64,6 +65,7 @@ void main() {
 	gl_TessLevelInner[0] = mix(lod1,lod2,0.5);
 	gl_TessLevelInner[1] = mix(lod0,lod3,0.5);
 	
+	//this order is messed up...
 	gl_TessLevelOuter[2] = lod0;
 	gl_TessLevelOuter[1] = lod1;
 	gl_TessLevelOuter[0] = lod2;
@@ -80,6 +82,7 @@ in int tcInstance[];
 in vec3 tcTexCoord[];
 out vec3 fTexCoord;
 uniform float heightScale = 100.0;
+uniform vec2 textureSizeI = 1.0 / vec2(512.0, 512.0);
 void main() {
     float u = gl_TessCoord.x, v = gl_TessCoord.y;
     vec3 a = mix(tcPosition[1], tcPosition[0], u);
@@ -93,7 +96,14 @@ void main() {
      
     float instances = grid.x * grid.y;
     float z = (tcInstance[1]  + 0.5) / instances; //gl_InvocationID / instances
-    float prec = 0.001;
+    float prec = 0.000975;
+    
+    //determine if we hit the last pix?
+    
+
+    
+    
+    
     fTexCoord = vec3(clamp(tc.st, prec, 1.0-prec),z);
     tePosition.y += texture(tex, fTexCoord).x * heightScale;
     gl_Position = projMatrix * modelviewMatrix * vec4(tePosition, 1);
