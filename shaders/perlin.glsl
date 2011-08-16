@@ -12,7 +12,7 @@ uniform int octaves;
 uniform float lacunarity;
 uniform float gain;
 uniform float offset;
-
+uniform float heightScale = 100.0;
 uniform vec2 scale; //the scale of the tile (in world space)
 uniform vec2 offsets[8]; //the offsets of the tiles (in world space)
 
@@ -95,7 +95,7 @@ float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 		freq *= lac;
 		amp *= g;
 	}
-	return sum-0.5;
+	return (sum-0.5)*heightScale;
 }
 
 

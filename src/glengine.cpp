@@ -32,8 +32,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     camera_.center = float3(0.0, 10.0, 0.0);
     camera_.eye = float3(0.0, 30.0, 50.0);
     camera_.up = float3(0.0, 1.0, 0.0);
-    camera_.near = 0.1;
-    camera_.far = 2000.0;
+    camera_.near = 0.01;
+    camera_.far = 7000.0;
     camera_.rotx = camera_.roty = 0.f;
     camera_.fovy = 60.0;
 
@@ -62,7 +62,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
 			 float3(20, 1, 20));
     
 
-    primtives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(1000, 1000, 1000));
+    primtives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(5000, 5000, 5000));
 
 
     //load shader programs
@@ -84,7 +84,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
     
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 512;
+    paramsT.resolution = 256;
     paramsT.gain = 0.61;
     paramsT.grid = float2(20,20);
     paramsT.lacunarity = 1.7;
@@ -128,7 +128,7 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     float tess = (float)max((int)(distance * 10000), 3);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
     shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
-  //  primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
+    primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
     terrain_->draw(vsml_);
     pMultisampleFramebuffer->release();

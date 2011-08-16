@@ -34,7 +34,7 @@ protected:
     
     void generateTerrain(VSML *vsml);
     int instances_;
-    GLuint tex_;
+    GLuint heightmap_, normalmap_;
     GLPerlinTerrainParams params_;
     GLShaderProgram *drawShader_, *perlinShader_;
     GLFramebufferObject **framebuffers_;

@@ -11,12 +11,12 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_ = new GLShaderProgram();
     drawShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/recttess.glsl");
-   // drawShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/recttess.glsl");
+    drawShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/recttess.glsl");
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(4, 0, 4),
+    terrain_ = new GLRect(float3(7, 0, 7),
 			 float3(0, 0, 0),
 			 float3(100, 1, 100));
     
@@ -48,8 +48,8 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     params.format = GL_R16F;
     
     //create the 3d textire
-    glGenTextures(1, &tex_);
-    glBindTexture(GL_TEXTURE_3D, tex_);
+    glGenTextures(1, &heightmap_);
+    glBindTexture(GL_TEXTURE_3D, heightmap_);
     glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -59,18 +59,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 		 instances_, 0, GL_LUMINANCE, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_3D, 0);
 
-    // manually attach 3d layers to the framebuffers
-    for(int i=0, k=0;i<noBuffers;i++) {
-	framebuffers_[i] = new GLFramebufferObject(params);
-	framebuffers_[i]->bind();
-	glBindTexture(GL_TEXTURE_3D, tex_);
-	for(int j=0; j<maxAttachments; j++, k++) {
-	    if(k >= instances_) break;
-	     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, tex_, 0, k);
-	}
-	glBindTexture(GL_TEXTURE_3D, 0);
-	framebuffers_[i]->release();
-    }
+   
     
     
     // create lookup textures
@@ -149,6 +138,18 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 			   GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
 			   GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
 			   GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7}; 
+    // manually attach 3d layers to the framebuffers
+    for(int i=0, k=0;i<noBuffers;i++) {
+	framebuffers_[i] = new GLFramebufferObject(params);
+	framebuffers_[i]->bind();
+	glBindTexture(GL_TEXTURE_3D, heightmap_);
+	for(int j=0; j<maxAttachments; j++, k++) {
+	    if(k >= instances_) break;
+	     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, heightmap_, 0, k);
+	}
+	glBindTexture(GL_TEXTURE_3D, 0);
+	framebuffers_[i]->release();
+    }
     for(int i=0; i<noBuffers; i++) { //todo: need to set MRT fragment outs
 	framebuffers_[i]->bind();
 	
@@ -174,7 +175,10 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	perlinShader_->setFragDataLocation("out_Color1", 1);
 	perlinShader_->setFragDataLocation("out_Color2", 2);
 	perlinShader_->setFragDataLocation("out_Color3", 3);
-	
+	perlinShader_->setFragDataLocation("out_Color4", 4);
+	perlinShader_->setFragDataLocation("out_Color5", 5);
+	perlinShader_->setFragDataLocation("out_Color6", 6);
+	perlinShader_->setFragDataLocation("out_Color7", 7);
 	glDrawBuffers(8, outputTex); 
 	quad->draw(perlinShader_);
 	
@@ -183,6 +187,39 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	framebuffers_[i]->release();
     
     }
+    
+    
+    //create normal map
+    glGenTextures(1, &normalmap_);
+    glBindTexture(GL_TEXTURE_3D, normalmap_);
+    glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, params_.resolution, params_.resolution, 
+		 instances_, 0, GL_LUMINANCE, GL_FLOAT, 0);
+    glBindTexture(GL_TEXTURE_3D, 0);
+    // manually attach 3d layers to the framebuffers
+    for(int i=0, k=0;i<noBuffers;i++) {
+	framebuffers_[i]->bind();
+	glBindTexture(GL_TEXTURE_3D, normalmap_);
+	for(int j=0; j<maxAttachments; j++, k++) {
+	    if(k >= instances_) break;
+	     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, normalmap_, 0, k);
+	}
+	glBindTexture(GL_TEXTURE_3D, 0);
+	framebuffers_[i]->release();
+    }
+    
+    for(int i=0; i<noBuffers; i++) { 
+	framebuffers_[i]->bind();
+	
+	
+	framebuffers_[i]->release();
+    
+    }
+    
     
     glDrawBuffers(1, outputTex); 
      
@@ -203,7 +240,7 @@ void GLPerlinTerrain::draw(VSML *vsml) {
     
     drawShader_->bind(vsml);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_3D, tex_);
+    glBindTexture(GL_TEXTURE_3D, heightmap_);
     drawShader_->setUniformValue("tex", 0);
     drawShader_->setUniformValue("TessLevelInner", tess);
     drawShader_->setUniformValue("TessLevelOuter", tess);

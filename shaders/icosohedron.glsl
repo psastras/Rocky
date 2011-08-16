@@ -46,7 +46,7 @@ void main() {
     vec3 p0 = gl_TessCoord.x * tcPosition[0];
     vec3 p1 = gl_TessCoord.y * tcPosition[1];
     vec3 p2 = gl_TessCoord.z * tcPosition[2];
-    tePosition = normalize(p0 + p1 + p2)*1000.f;//length(tcPosition[0]);
+    tePosition = normalize(p0 + p1 + p2)*5000.f;//length(tcPosition[0]);
     gl_Position = projMatrix * modelviewMatrix * vec4(tePosition, 1);
 }
 
@@ -60,7 +60,7 @@ void main() {
     vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
     vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
     if(tePosition.y >= 0.0)
-	FragColor = mix(c1,c0,tePosition.y / 1000.0);
+	FragColor = mix(c1,c0,tePosition.y / 5000.0);
     else
 	FragColor = c1;
 }
