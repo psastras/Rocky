@@ -26,7 +26,7 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
 			   float3(params_.resolution, params_.resolution, 1));
     
     GLFFTWaterParams fftparams;
-    fftparams.A = 0.0000005f;
+    fftparams.A = 0.00000015f;
     fftparams.V = 10.0f;
     fftparams.w = 200 * 3.14159f / 180.0f;
     fftparams.L = 200.0;
@@ -161,12 +161,10 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
     }
+   
     for(int i=0; i<noBuffers; i++) { //todo: need to set MRT fragment outs
 	framebuffers_[i]->bind();
-	
-	
 	perlinShader_->bind(vsml);    
-      
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, textures[0]);
 	perlinShader_->setUniformValue("permutation", 0);
@@ -174,7 +172,6 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	glBindTexture(GL_TEXTURE_1D, textures[1]);
 	perlinShader_->setUniformValue("gradient", 1);
 	glActiveTexture(GL_TEXTURE0);
-	
 	perlinShader_->setUniformValue("noiseScale", params_.noiseScale);
 	perlinShader_->setUniformValue("octaves", params_.octaves);
 	perlinShader_->setUniformValue("lacunarity", params_.lacunarity);
@@ -192,13 +189,11 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	perlinShader_->setFragDataLocation("out_Color7", 7);
 	glDrawBuffers(8, outputTex); 
 	quad->draw(perlinShader_);
-	
 	perlinShader_->release();
-	
 	framebuffers_[i]->release();
-    
     }
     
+    /*
     
     //create normal map
     glGenTextures(1, &normalmap_);
@@ -221,7 +216,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	}
 	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
-    }
+    }*/
     /*
     lightingShader_ = new GLShaderProgram();
     lightingShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/normals.glsl");
@@ -261,9 +256,10 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     }
     
     */
-    glDrawBuffers(1, outputTex); 
+    
+//    glDrawBuffers(1, outputTex); 
      
-	    
+    
     
     glViewport(0, 0, width, height); // restore the viewport
     glBindTexture(GL_TEXTURE_1D, 0);

@@ -63,7 +63,7 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
     glBindTexture(GL_TEXTURE_2D, m_texId);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F_ARB, params.N, params.N, 0, GL_RGB, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, params.N, params.N, 0, GL_RGB, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

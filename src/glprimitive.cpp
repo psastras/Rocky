@@ -15,50 +15,58 @@ GLPrimitive::~GLPrimitive() {
 
 void GLPrimitive::draw(GLShaderProgram *program, int instances) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
-    glVertexAttribPointer(program->getAttributeLocation("in_Position"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
-    glVertexAttribPointer(program->getAttributeLocation("in_Normal"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
-    glVertexAttribPointer(program->getAttributeLocation("in_TexCoord"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
+    GLint ids[3] = {
+	program->getAttributeLocation("in_Position"),
+	program->getAttributeLocation("in_Normal"),
+	program->getAttributeLocation("in_TexCoord")
+    };
+    if(ids[0] >= 0)
+	glVertexAttribPointer(ids[0], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
+    if(ids[1] >= 0)
+	glVertexAttribPointer(ids[1], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
+    if(ids[2] >= 0)
+	glVertexAttribPointer(ids[2], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-    glEnableVertexAttribArray(program->getAttributeLocation("in_Position"));
-    glEnableVertexAttribArray(program->getAttributeLocation("in_Normal"));
-    glEnableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
+    if(ids[0] >= 0) glEnableVertexAttribArray(ids[0]);
+    if(ids[1] >= 0) glEnableVertexAttribArray(ids[1]);
+    if(ids[2] >= 0) glEnableVertexAttribArray(ids[2]);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
     glDrawElementsInstanced(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0), instances);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(program->getAttributeLocation("in_Position"));
-    glDisableVertexAttribArray(program->getAttributeLocation("in_Normal"));
-    glDisableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
+    if(ids[0] >= 0) glDisableVertexAttribArray(ids[0]);
+    if(ids[1] >= 0) glDisableVertexAttribArray(ids[1]);
+    if(ids[2] >= 0) glDisableVertexAttribArray(ids[2]);
 }
 
 void GLPrimitive::draw(GLShaderProgram *program) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
-    glVertexAttribPointer(program->getAttributeLocation("in_Position"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
-    glVertexAttribPointer(program->getAttributeLocation("in_Normal"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
-    glVertexAttribPointer(program->getAttributeLocation("in_TexCoord"), 3,
-			  GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
+    
+    GLint ids[3] = {
+	program->getAttributeLocation("in_Position"),
+	program->getAttributeLocation("in_Normal"),
+	program->getAttributeLocation("in_TexCoord")
+    };
+    if(ids[0] >= 0)
+	glVertexAttribPointer(ids[0], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)vOffset_);
+    if(ids[1] >= 0)
+	glVertexAttribPointer(ids[1], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)nOffset_);
+    if(ids[2] >= 0)
+	glVertexAttribPointer(ids[2], 3, GL_FLOAT, GL_FALSE, sizeof(GLVertex), (GLvoid *)tOffset_);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-    glEnableVertexAttribArray(program->getAttributeLocation("in_Position"));
-    glEnableVertexAttribArray(program->getAttributeLocation("in_Normal"));
-    glEnableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
+    if(ids[0] >= 0) glEnableVertexAttribArray(ids[0]);
+    if(ids[1] >= 0) glEnableVertexAttribArray(ids[1]);
+    if(ids[2] >= 0) glEnableVertexAttribArray(ids[2]);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(program->getAttributeLocation("in_Position"));
-    glDisableVertexAttribArray(program->getAttributeLocation("in_Normal"));
-    glDisableVertexAttribArray(program->getAttributeLocation("in_TexCoord"));
+    
+    if(ids[0] >= 0) glDisableVertexAttribArray(ids[0]);
+    if(ids[1] >= 0) glDisableVertexAttribArray(ids[1]);
+    if(ids[2] >= 0) glDisableVertexAttribArray(ids[2]);
 }
 
 void GLPrimitive::draw() {

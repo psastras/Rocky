@@ -1,6 +1,6 @@
 #include "vsml.h"
 #include <math.h>
-
+#include "../../src/glcommon.h"
 // This var keeps track of the single instance of VSML
 VSML* VSML::gInstance = 0;
 
@@ -299,7 +299,6 @@ VSML::perspective(float fov, float ratio, float nearp, float farp)
 	projMatrix[3 * 4 + 2] = (2.0f * farp * nearp) / (nearp - farp);
 	projMatrix[2 * 4 + 3] = -1.0f;
 	projMatrix[3 * 4 + 3] = 0.0f;
-
 #ifdef VSML_ALWAYS_SEND_TO_OPENGL
 	matrixToGL(PROJECTION);
 #endif
@@ -387,6 +386,7 @@ VSML::matrixToGL(MatrixTypes aType)
 	if (mInit) {
 
 		if (mBlocks) {
+		    
 			glBindBuffer(GL_UNIFORM_BUFFER,mBuffer);
 			glBufferSubData(GL_UNIFORM_BUFFER, mOffset[aType], 16 * sizeof(float), mMatrix[aType]);
 			glBindBuffer(GL_UNIFORM_BUFFER,0);

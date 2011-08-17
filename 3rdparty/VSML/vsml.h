@@ -1,7 +1,7 @@
 #ifndef __VSML__
 #define __VSML__
 
-#define VSML_ALWAYS_SEND_TO_OPENGL 0
+//#define VSML_ALWAYS_SEND_TO_OPENGL 0
 
 #include <vector>
 #include <GL/glew.h>

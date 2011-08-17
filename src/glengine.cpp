@@ -84,7 +84,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
     
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 256;
+    paramsT.resolution = 128;
     paramsT.gain = 0.61;
     paramsT.grid = float2(30,30);
     paramsT.lacunarity = 1.7;
@@ -93,7 +93,6 @@ GLEngine::GLEngine(WindowProperties &properties) {
     paramsT.tess = 512;
     paramsT.octaves = 11;
     terrain_ = new GLPerlinTerrain(paramsT, this);
-    
     lightPos_ = float3(1.0, 0.5, 0.0).getNormalized();
 }
 
@@ -116,14 +115,23 @@ void GLEngine::resize(int w, int h) {
 
 void GLEngine::draw(float time, float dt, const KeyboardController *keyController) {
     processKeyEvents(keyController, dt);
-   
+    GLenum outputTex[8] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+			   GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+			   GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+			   GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7}; 
     glEnable(GL_DEPTH_TEST);
     
+    
+    GLERROR("check-2");
     this->vsmlPersepective();
-
+GLERROR("check-1");
     pMultisampleFramebuffer->bind();
+     GLERROR("check0");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
+  //  glDrawBuffers(2, outputTex); 
+    shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color0", 0);
+    shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color1", 1);
     shaderPrograms_["icosohedron"]->setUniformValue("lightPos", lightPos_);
     primitives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
@@ -131,9 +139,9 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer);
     
+    GLERROR("check");
     
     glDisable(GL_DEPTH_TEST);
-    
     this->vsmlOrtho();
     shaderPrograms_["default"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
@@ -142,7 +150,6 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     primitives_["quad1"]->draw(shaderPrograms_["default"]);
     pFramebuffer->unbindsurface();
     shaderPrograms_["default"]->release();
-
     camera_.orthogonal_camera(width_, height_);
 }
 
@@ -162,6 +169,7 @@ void GLEngine::vsmlPersepective() {
     int w = width_, h = height_;
     vsml_->perspective(camera_.fovy, w / (float)h, camera_.near, camera_.far);
     vsml_->loadIdentity(VSML::MODELVIEW);
+     
     vsml_->rotate(camera_.rotx, 1.f, 0.f, 0.f);
     vsml_->rotate(camera_.roty, 0.f, 1.f, 0.f);
     vsml_->translate(-camera_.eye.x, -camera_.eye.y, -camera_.eye.z);

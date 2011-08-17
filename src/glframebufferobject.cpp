@@ -65,9 +65,9 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	
 	    glGenRenderbuffersEXT(params.nColorAttachments, &color_[0]);
 	    for(int i=0; i<params.nColorAttachments; i++) {
-		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, color_[i]);
-		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params.nSamples, params.format, params.width, params.height);
-		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_RENDERBUFFER_EXT, color_[i]);
+		glBindRenderbuffer(GL_RENDERBUFFER, color_[i]);
+		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, params.nSamples, params.format, params.width, params.height);
+		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0 + i, GL_RENDERBUFFER, color_[i]);
 	    }
 	} else if(params.type == GL_TEXTURE_3D) {
 	    cerr << "3D textures with multisample framebuffers currently not supported.";
@@ -139,11 +139,11 @@ void GLFramebufferObject::blit(GLFramebufferObject &dst) {
    // assert(this->params().hasDepth == dst.params().hasDepth);
 
     for(int i=0; i<params_.nColorAttachments; i++) {
-	glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, this->id());
-	glReadBuffer(GL_COLOR_ATTACHMENT0_EXT + i);
-	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, dst.id());
-	glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT + i);
-        glBlitFramebufferEXT(0, 0, this->width(), this->height(), 0, 0, dst.width(), dst.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebufferEXT(GL_READ_FRAMEBUFFER, this->id());
+	glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER, dst.id());
+	glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
+        glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, dst.width(), dst.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
     if(this->params().hasDepth && dst.params().hasDepth) {
@@ -154,8 +154,8 @@ void GLFramebufferObject::blit(GLFramebufferObject &dst) {
         glBlitFramebufferEXT(0, 0, this->width(), this->height(), 0, 0, dst.width(), dst.height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
     }
 
-    glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, 0);
-    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 }
 
@@ -168,6 +168,7 @@ GLuint GLFramebufferObject::depth() {
 }
 
 void GLFramebufferObject::bind() {
+    
      glBindFramebuffer(GL_FRAMEBUFFER, id_);
 }
 

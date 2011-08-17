@@ -53,8 +53,8 @@ void main() {
 
 #ifdef _FRAGMENT_
 in vec3 tePosition;
-out vec4 FragColor;
-
+out vec4 out_Color0;
+out vec4 out_Color1;
 vec4 atmosphere(vec3 pos) {
     vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
     vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
@@ -67,7 +67,7 @@ vec4 atmosphere(vec3 pos) {
 }
 
 void main() {
-    FragColor = atmosphere(tePosition / 5000.0);
+    out_Color0 = atmosphere(tePosition / 5000.0);
 }
 
 #endif

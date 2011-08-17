@@ -11,6 +11,7 @@ uniform vec3 lightPos;
 uniform vec3 cameraPos;
 uniform float waterLevel = 0.0;
 const float tile =0.005;
+const float attenuation = 0.075;
 uniform float LOD;
 #ifdef _VERTEX_
 in vec3 in_Position;
@@ -19,6 +20,7 @@ in vec3 in_TexCoord;
 out vec3 vPosition;
 out vec3 vTexCoord;
 out int vInstance;
+
 void main() {
     vPosition = in_Position;
     float idxX = gl_InstanceID / int(grid.x) - (grid.x / 2.f);
@@ -131,6 +133,7 @@ in vec3 tcPosition[];
 in int tcInstance[];
 in vec3 tcTexCoord[];
 out vec3 gTexCoord;
+
 void main() {
     float u = gl_TessCoord.x, v = gl_TessCoord.y;
     vec3 a = mix(tcPosition[1], tcPosition[0], u);
@@ -153,8 +156,8 @@ void main() {
     } else {
 	vec3 displacement = texture(waterTex, tePosition.xz*tile).xyz;
 	//attenuate y near shore
-	float dH = abs(tHeight - waterLevel);
-	displacement.y *= min(dH*0.1, 1.0);
+	float dH = abs(tHeight - waterLevel)*attenuation;
+	displacement.y *= min(dH, 1.0);
 	tePosition.xyz += displacement;
 	
     }
@@ -220,7 +223,10 @@ vec4 water(vec3 normal, vec4 pos) {
     vec4 waterColor = mix(baseColor, transColor*transColor, cos_angle);
     reflDir = normalize(reflDir);
     vec4 atmoColor = atmosphere(reflDir);
-    return mix(waterColor*waterColor, atmoColor, 0.3);
+    
+    //add foam if near shore
+    
+    return mix(waterColor, atmoColor, 0.3);
 }
 
 float amplify(float d, float scale, float offset) {
@@ -230,25 +236,46 @@ float amplify(float d, float scale, float offset) {
     return d;
 }
 
-vec4 computeFFTNormal(vec2 pos) {
+vec4 computeFFTNormal(vec2 pos, float atten) {
     float delta =(1.0/256.0);
     pos *= tile;
-    float p0 = texture(waterTex, (pos + vec2(0.0, -delta)) ).y;
-    float p1 = texture(waterTex, (pos + vec2(-delta, 0.0) )).y;
-    float p2 = texture(waterTex, (pos + vec2(delta, 0.0) ) ).y;
-    float p3 = texture(waterTex, (pos + vec2(0.0, delta) ) ).y;
+    
+    float p0 = texture(waterTex, (pos + vec2(0.0, -delta)) ).y * atten;
+    float p1 = texture(waterTex, (pos + vec2(-delta, 0.0) )).y * atten;
+    float p2 = texture(waterTex, (pos + vec2(delta, 0.0) ) ).y * atten;
+    float p3 = texture(waterTex, (pos + vec2(0.0, delta) ) ).y * atten;
     
     return vec4(p1-p2,2.0*200.0*delta,p0-p3,0.0);
 }
 
+vec4 refractTerrain(vec3 disp, vec3 normal, float depth) { //fake refraction based on depth
+    vec3 coord = fTexCoord;
+    coord.xz += disp.xz*depth*depth*normal.y*0.002;
+    float h = texture(tex, coord).x;
+    return vec4(vec3(h*0.01+0.75), 1.0);
+}
+
 void main() {
-    float d1 = min(min(fTriDistance.x, fTriDistance.y), fTriDistance.z);
-    d1 = 1 - amplify(d1, 50, -1.0);
+  
     float h = texture(tex, fTexCoord).x;
     FragColor = vec4(vec3(h*0.01+0.75), 1.0);//vec4(1.0, 1.0, 1.0, 1.0);
-   
-    FragColor = mix(water(computeFFTNormal(fPosition.xz).xyz,fPosition), FragColor, 1.0-clamp((-h*0.1-waterLevel),0.0,1.0));
-    if(wireframe) FragColor = mix(FragColor, wireframeColor, d1);
+    float dH = abs(h - waterLevel)*attenuation;
+    
+    
+    float waterStrength = 1.0-clamp((-h*attenuation-waterLevel),0.0,1.0);
+    if(waterStrength < 1.0) {
+	vec3 I = fPosition.xyz - cameraPos.xyz;
+	vec3 N = computeFFTNormal(fPosition.xz, dH).xyz;
+	vec3 displacement = texture(waterTex, fPosition.xz*tile).xyz;
+	FragColor = mix(water(N, fPosition), 
+	                refractTerrain(displacement, N, dH), waterStrength);
+    }
+    
+    if(wireframe) {
+	float d1 = min(min(fTriDistance.x, fTriDistance.y), fTriDistance.z);
+	d1 = 1 - amplify(d1, 50, -1.0);
+	FragColor = mix(FragColor, wireframeColor, d1);
+    }
 }
 
 #endif
