@@ -32,10 +32,10 @@ GLEngine::GLEngine(WindowProperties &properties) {
     camera_.center = float3(0.0, 10.0, 0.0);
     camera_.eye = float3(0.0, 30.0, 50.0);
     camera_.up = float3(0.0, 1.0, 0.0);
-    camera_.near = 0.01;
+    camera_.near = 1.0;
     camera_.far = 7000.0;
     camera_.rotx = camera_.roty = 0.f;
-    camera_.fovy = 60.0;
+    camera_.fovy = 50.0;
 
     GLFramebufferObjectParams params;
     params.width = properties.width;
@@ -44,7 +44,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.depthFormat = GL_DEPTH_COMPONENT;
     params.format = GL_RGBA16F;
     params.nColorAttachments = 1;
-    params.nSamples = GLFramebufferObject::queryMaxSamples();
+    params.nSamples = GLFramebufferObject::queryMaxSamples() / 2;
     params.type = GL_TEXTURE_2D;
     pMultisampleFramebuffer = new GLFramebufferObject(params);
 
@@ -53,16 +53,16 @@ GLEngine::GLEngine(WindowProperties &properties) {
 
     pFramebuffer = new GLFramebufferObject(params);
 
-    primtives_["quad1"] = new GLQuad(float3(1, 1, 0),
+    primitives_["quad1"] = new GLQuad(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
 
-    primtives_["plane0"] = new GLPlane(float3(40, 0, 40),
+    primitives_["plane0"] = new GLPlane(float3(40, 0, 40),
 			 float3(0, 0, 0),
 			 float3(20, 1, 20));
     
 
-    primtives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(5000, 5000, 5000));
+    primitives_["sphere0"]  = new GLIcosohedron(float3::zero(), float3::zero(), float3(5000, 5000, 5000));
 
 
     //load shader programs
@@ -86,13 +86,15 @@ GLEngine::GLEngine(WindowProperties &properties) {
     GLPerlinTerrainParams paramsT;
     paramsT.resolution = 256;
     paramsT.gain = 0.61;
-    paramsT.grid = float2(20,20);
+    paramsT.grid = float2(30,30);
     paramsT.lacunarity = 1.7;
     paramsT.offset = 1;
     paramsT.noiseScale = .1;
     paramsT.tess = 512;
     paramsT.octaves = 11;
     terrain_ = new GLPerlinTerrain(paramsT, this);
+    
+    lightPos_ = float3(1.0, 0.5, 0.0).getNormalized();
 }
 
 
@@ -105,7 +107,7 @@ GLEngine::~GLEngine() {
 void GLEngine::resize(int w, int h) {
     width_ = w; height_ = h;
     glViewport(0, 0, width_, height_);
-    primtives_["quad1"]->tesselate(float3(1, 1, 0),
+    primitives_["quad1"]->tesselate(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
    pMultisampleFramebuffer->resize(width_, height_);
@@ -114,7 +116,7 @@ void GLEngine::resize(int w, int h) {
 
 void GLEngine::draw(float time, float dt, const KeyboardController *keyController) {
     processKeyEvents(keyController, dt);
-    if(renderMode_ == WIREFRAME) glPolygonMode(GL_FRONT, GL_LINE);
+   
     glEnable(GL_DEPTH_TEST);
     
     this->vsmlPersepective();
@@ -122,29 +124,22 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     pMultisampleFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
-  
-    float distance = 1.f / (abs((primtives_["sphere0"]->scale().x - 
-				 camera_.eye.getMagnitude()) + 0.001f));
-    float tess = (float)max((int)(distance * 10000), 3);
-    shaderPrograms_["icosohedron"]->setUniformValue("TessLevelInner", tess);
-    shaderPrograms_["icosohedron"]->setUniformValue("TessLevelOuter", tess);
-    primtives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
+    shaderPrograms_["icosohedron"]->setUniformValue("lightPos", lightPos_);
+    primitives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
-    terrain_->draw(vsml_);
+    terrain_->draw(vsml_, time);
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer);
     
     
     glDisable(GL_DEPTH_TEST);
     
-    if(renderMode_ == WIREFRAME) glPolygonMode(GL_FRONT, GL_FILL);
-    
     this->vsmlOrtho();
     shaderPrograms_["default"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
     pFramebuffer->bindsurface(0);
     shaderPrograms_["default"]->setUniformValue("tex", 0);
-    primtives_["quad1"]->draw(shaderPrograms_["default"]);
+    primitives_["quad1"]->draw(shaderPrograms_["default"]);
     pFramebuffer->unbindsurface();
     shaderPrograms_["default"]->release();
 
@@ -172,7 +167,7 @@ void GLEngine::vsmlPersepective() {
     vsml_->translate(-camera_.eye.x, -camera_.eye.y, -camera_.eye.z);
 }
 
-float sensitivity = 0.000005f;
+float sensitivity = 0.001f;
 void GLEngine::mouseMove(float dx, float dy, float dt) {
     if(dt == 0.f) return;
     float deltax = -dx*sensitivity/dt;
@@ -192,6 +187,8 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 #define KEY_SPACE 32
 #define KEY_1 49
 #define KEY_2 50
+#define KEY_UP 38
+#define KEY_DOWN 40
 #else
 #define KEY_W 25
 #define KEY_A 38
@@ -227,5 +224,9 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 	this->setRenderMode(FILL);
     } if(keycontroller->isKeyPress(KEY_2)) {
 	this->setRenderMode(WIREFRAME);
+    } if(keycontroller->isKeyDown(KEY_UP)) {
+	terrain_->setLod(terrain_->lod() + 1);
+    } if(keycontroller->isKeyDown(KEY_DOWN)) {
+	terrain_->setLod(max(terrain_->lod() - 1, 1.f));
     }
 }

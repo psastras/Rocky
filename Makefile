@@ -11,7 +11,7 @@ endif
 
 
 ifeq ($(OS),Windows_NT)
-    LDFLAGS = -L/usr/local/lib -lglew32 -lglu32 -lopengl32 -lgdi32
+    LDFLAGS = -L/usr/local/lib -lglew32 -lglu32 -lopengl32 -lgdi32 -L3rdparty/fftw -lfftw3f 
 else
     LDFLAGS = -lm -lX11 -lGL -lGLU 
 endif

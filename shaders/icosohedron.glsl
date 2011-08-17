@@ -2,6 +2,7 @@
 
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
+uniform vec3 lightPos;
 
 #ifdef _VERTEX_
 in vec3 in_Position;
@@ -19,8 +20,6 @@ void main() {
 layout(vertices = 3) out;
 in vec3 vPosition[];
 out vec3 tcPosition[];
-uniform float TessLevelInner;
-uniform float TessLevelOuter;
 
 void main() {
     tcPosition[gl_InvocationID] = vPosition[gl_InvocationID];
@@ -29,10 +28,10 @@ void main() {
 	vec4 p1 =  projMatrix * modelviewMatrix * vec4(tcPosition[1], 1);
 	vec4 p2 =  projMatrix * modelviewMatrix * vec4(tcPosition[2], 1);
 	float a = int((abs(p0.x*(p1.y-p2.y)+p1.x*(p2.y-p0.y)+p2.x*(p0.y-p1.y))) * 0.5);*/
-	gl_TessLevelInner[0] = TessLevelInner;
-	gl_TessLevelOuter[0] = TessLevelOuter;
-	gl_TessLevelOuter[1] = TessLevelOuter;
-	gl_TessLevelOuter[2] = TessLevelOuter;
+	gl_TessLevelInner[0] = 16;
+	gl_TessLevelOuter[0] = 16;
+	gl_TessLevelOuter[1] = 16;
+	gl_TessLevelOuter[2] = 16;
     }
 }
 
@@ -56,13 +55,19 @@ void main() {
 in vec3 tePosition;
 out vec4 FragColor;
 
-void main() {
+vec4 atmosphere(vec3 pos) {
     vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
     vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
-    if(tePosition.y >= 0.0)
-	FragColor = mix(c1,c0,tePosition.y / 5000.0);
+    vec4 s0 = vec4(1.0, 1.0, 1.0, 1.0); //sun color
+    float d = length(pos - lightPos)*20.0;
+    if(pos.y >= 0.0)
+	return mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.25), 0.0, 1.0));
     else
-	FragColor = c1;
+	return mix(c1, s0, clamp(1.0/pow(d,1.25), 0.0, 1.0));
+}
+
+void main() {
+    FragColor = atmosphere(tePosition / 5000.0);
 }
 
 #endif

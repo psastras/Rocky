@@ -24,6 +24,9 @@ struct eqstr{
 };
 
 
+enum RenderMode {
+    WIREFRAME, FILL
+};
 
 class GLEngine
 {
@@ -31,9 +34,7 @@ public:
     GLEngine(WindowProperties &properties);
     ~GLEngine();
 
-    enum RenderMode {
-	WIREFRAME, FILL
-    };
+
 
 
     void resize(int w, int h);
@@ -47,9 +48,10 @@ public:
     void vsmlOrtho(int width, int height);
     VSML *vsml() { return vsml_; }
     Camera *camera() { return &camera_; }
+    float3 light() { return lightPos_; }
 
     void setRenderMode(RenderMode mode) { renderMode_ = mode; }
-
+    RenderMode renderMode() { return renderMode_; }
 
 protected:
 
@@ -57,9 +59,10 @@ protected:
 
     int width_, height_;
     Camera camera_;
+    float3 lightPos_;
     VSML *vsml_;
     unordered_map<const char*, GLShaderProgram *, hash<const char*>, eqstr> shaderPrograms_;
-    unordered_map<const char*, GLPrimitive *> primtives_;
+    unordered_map<const char*, GLPrimitive *> primitives_;
     RenderMode renderMode_;
     GLPerlinTerrain *terrain_;
 };

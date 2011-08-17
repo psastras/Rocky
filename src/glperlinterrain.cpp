@@ -4,7 +4,7 @@
 #include "glcommon.h"
 #include "glprimitive.h"
 #include "glframebufferobject.h"
-
+#include "glfftwater.h"
 GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine) {
     params_ = params;
     engine_ = engine;
@@ -24,6 +24,17 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     quad_ =  new GLQuad(float3(1, 1, 0),
 			   float3(params_.resolution * 0.5, params_.resolution * 0.5, 0),
 			   float3(params_.resolution, params_.resolution, 1));
+    
+    GLFFTWaterParams fftparams;
+    fftparams.A = 0.0000005f;
+    fftparams.V = 10.0f;
+    fftparams.w = 200 * 3.14159f / 180.0f;
+    fftparams.L = 200.0;
+    fftparams.N = 256;
+    fftparams.chop = 7.0;
+    fftwater_ = new GLFFTWater(fftparams);
+    
+    lod_ = 15.f;
     
     this->generateTerrain(engine_->vsml());
 }
@@ -211,16 +222,45 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
     }
+    /*
+    lightingShader_ = new GLShaderProgram();
+    lightingShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/normals.glsl");
+    lightingShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/normals.glsl");
+    lightingShader_->link();
+    
+    float *layers = new float[instances_ + (instances_ % 8)];
+    for(int x=0, i=0; x<params_.grid.x; x++) {
+	for(int y=0; y<params_.grid.y; y++, i++) {
+	    layers[i] = (i+0.5) / (float)instances_;
+	}
+    }
     
     for(int i=0; i<noBuffers; i++) { 
 	framebuffers_[i]->bind();
 	
+	lightingShader_->bind();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, heightmap_);
+	lightingShader_->setUniformValue("tex", 0);
+	lightingShader_->setUniformValue("layers", &layers[8*i], 8);
+	lightingShader_->setFragDataLocation("out_Color0", 0);
+	lightingShader_->setFragDataLocation("out_Color1", 1);
+	lightingShader_->setFragDataLocation("out_Color2", 2);
+	lightingShader_->setFragDataLocation("out_Color3", 3);
+	lightingShader_->setFragDataLocation("out_Color4", 4);
+	lightingShader_->setFragDataLocation("out_Color5", 5);
+	lightingShader_->setFragDataLocation("out_Color6", 6);
+	lightingShader_->setFragDataLocation("out_Color7", 7);
+	glDrawBuffers(8, outputTex); 
+	quad->draw(lightingShader_);
 	
+	lightingShader_->release();
+	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
     
     }
     
-    
+    */
     glDrawBuffers(1, outputTex); 
      
 	    
@@ -230,24 +270,32 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glDeleteTextures(2, &textures[0]);
     delete quad;
     delete[] offsets;
+    //delete[] layers;
+
 }
 
 
-void GLPerlinTerrain::draw(VSML *vsml) {
+void GLPerlinTerrain::draw(VSML *vsml, float time) {    
     
-    float distance = 1.f / (abs(engine_->camera()->eye.y) + 0.001f);
-    float tess = (float)min((max((int)(distance * 500), 3)), 25);
+    float3 *data = fftwater_->computeHeightfield(time);
+    GLuint tex = fftwater_->heightfieldTexture();
     
     drawShader_->bind(vsml);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, heightmap_);
     drawShader_->setUniformValue("tex", 0);
-    drawShader_->setUniformValue("TessLevelInner", tess);
-    drawShader_->setUniformValue("TessLevelOuter", tess);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    drawShader_->setUniformValue("waterTex", 1);
+    if(engine_->renderMode() == WIREFRAME) drawShader_->setUniformValue("wireframe", true);
+    else drawShader_->setUniformValue("wireframe", false);
     drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
+    drawShader_->setUniformValue("LOD", lod_);
+    drawShader_->setUniformValue("lightPos", engine_->light());
     drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     drawShader_->setUniformValue("D", terrain_->scale().x);
     terrain_->draw(drawShader_, instances_);
     glBindTexture(GL_TEXTURE_3D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     drawShader_->release();
 }

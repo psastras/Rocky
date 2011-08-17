@@ -36,7 +36,9 @@ public:
     }
 
     
-    
+    inline void setUniformValue(const char *name, bool value) {
+	glUniform1i(getUniformLocation(name), value);
+    }
 
     inline void setGeometryInputType(GLenum type) {
 	glProgramParameteriEXT(programId_, GL_GEOMETRY_INPUT_TYPE_EXT, type);
@@ -48,6 +50,10 @@ public:
     
     inline void setUniformValue(const char *name, float2 *vals, int n) {
 	glUniform2fv(getUniformLocation(name), n, &vals->x);
+    }
+    
+    inline void setUniformValue(const char *name, float *vals, int n) {
+	glUniform1fv(getUniformLocation(name), n, vals);
     }
 
     inline void setUniformValue(const char *name, float2 val) {

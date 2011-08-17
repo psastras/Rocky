@@ -17,7 +17,11 @@ class GLPrimitive {
       void draw();
       void draw(GLShaderProgram *program);
       void draw(GLShaderProgram *program, int instances);
-
+    
+      GLuint arrayID() { return arrayId_; }
+      GLuint vertexID() { return vertexId_; }
+      GLuint indexID() { return indexId_; }
+      
       const float3& scale() { return scale_; }
       const float3& translate() { return scale_; }
   protected:

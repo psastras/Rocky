@@ -146,7 +146,7 @@ double GetCounter() {
 }
 
 int main(int argc, char *argv[]) {
-    WindowProperties properties = {1366, 768};
+    WindowProperties properties = {1600, 900};
     HDC hDC;				/* device context */
     HGLRC hRC;				/* opengl context */
     HWND  hWnd;				/* window */
@@ -223,11 +223,11 @@ int main(int argc, char *argv[]) {
 	    glListBase(0);
 	    glPopAttrib();
 	}
-	
+/*	
 	{
 	    std::stringstream ss;
 	    if(dt < 0) dt = 0.01;
-	    ss << (int)(1.0 / dt) << " fps"; //@todo: this fps is totally broken its kind of funny
+	    ss << (int)(dt) << " fps"; //@todo: this fps is totally broken its kind of funny
 	    const char *s = ss.str().c_str();
 	    glPushAttrib(GL_LIST_BIT);
 	    glRasterPos2f(10.f, 40.f);
@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
 	    glListBase(0);
 	    glPopAttrib();
 	}
-	
+	*/
 	glFinish();
 
 

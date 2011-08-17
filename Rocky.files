@@ -22,3 +22,7 @@ shaders/recttess.glsl
 src/glperlinterrain.h
 src/glperlinterrain.cpp
 shaders/perlin.glsl
+shaders/normals.glsl
+3rdparty/fftw/fftw3.h
+src/glfftwater.h
+src/glfftwater.cpp
