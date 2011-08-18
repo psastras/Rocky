@@ -10,7 +10,7 @@ uniform bool wireframe = false;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
 uniform float waterLevel = 0.0;
-const float tile =0.005;
+const float tile =0.015;
 const float attenuation = 0.075;
 uniform float LOD;
 #ifdef _VERTEX_
@@ -199,18 +199,19 @@ void main() {
 in vec3 fTexCoord;
 in vec4 fPosition;
 in vec3 fTriDistance;
-out vec4 FragColor;
+out vec4 out_Color0;
+out vec4 out_Color1;
 const vec4 wireframeColor = vec4(0.7, 0.3, 0.3, 1);
 
 vec4 atmosphere(vec3 pos) {
     vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
     vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
-    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0); //sun color
-    float d = length(pos - lightPos)*20.0;
+    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * 1.; //sun color
+    float d = length(pos - lightPos)*70.0;
     if(pos.y >= 0.0)
-	return mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.25), 0.0, 1.0));
+	return mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
     else
-	return mix(c1, s0, clamp(1.0/pow(d,1.25), 0.0, 1.0));
+	return mix(c1, s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
 }
 
 vec4 water(vec3 normal, vec4 pos) {
@@ -219,14 +220,14 @@ vec4 water(vec3 normal, vec4 pos) {
     vec3 eyeDir	=  normalize(-cameraPos + pos.xyz);
     vec3 reflDir = reflect(eyeDir, norm);
     vec4 transColor = vec4(0.0, 0.278, 0.321, 0.0);
-    float cos_angle = dot(norm, eyeDir);
+    float cos_angle = max(dot(norm, eyeDir), 0.3);
     vec4 waterColor = mix(baseColor, transColor*transColor, cos_angle);
     reflDir = normalize(reflDir);
     vec4 atmoColor = atmosphere(reflDir);
     
     //add foam if near shore
     
-    return mix(waterColor, atmoColor, 0.3);
+    return mix(waterColor, atmoColor, 0.6);
 }
 
 float amplify(float d, float scale, float offset) {
@@ -252,13 +253,15 @@ vec4 refractTerrain(vec3 disp, vec3 normal, float depth) { //fake refraction bas
     vec3 coord = fTexCoord;
     coord.xz += disp.xz*depth*depth*normal.y*0.002;
     float h = texture(tex, coord).x;
-    return vec4(vec3(h*0.01+0.75), 1.0);
+    float pVal = h*0.01+0.75;
+    return vec4(.7, .7, .6, 1.0)*pVal;
 }
 
 void main() {
   
     float h = texture(tex, fTexCoord).x;
-    FragColor = vec4(vec3(h*0.01+0.75), 1.0);//vec4(1.0, 1.0, 1.0, 1.0);
+    float pVal = (1.0-(h*0.01+0.25));
+    out_Color0 = vec4(.7, .7, .6, 1.0)*pVal + vec4(0.3, 0.5, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
     float dH = abs(h - waterLevel)*attenuation;
     
     
@@ -267,15 +270,17 @@ void main() {
 	vec3 I = fPosition.xyz - cameraPos.xyz;
 	vec3 N = computeFFTNormal(fPosition.xz, dH).xyz;
 	vec3 displacement = texture(waterTex, fPosition.xz*tile).xyz;
-	FragColor = mix(water(N, fPosition), 
+	out_Color0 = mix(water(N, fPosition), 
 	                refractTerrain(displacement, N, dH), waterStrength);
     }
     
     if(wireframe) {
 	float d1 = min(min(fTriDistance.x, fTriDistance.y), fTriDistance.z);
 	d1 = 1 - amplify(d1, 50, -1.0);
-	FragColor = mix(FragColor, wireframeColor, d1);
+	out_Color0 = mix(out_Color0, wireframeColor, d1);
     }
+    out_Color1 = fPosition;
+    out_Color0.w = 0.0;
 }
 
 #endif

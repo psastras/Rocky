@@ -18,7 +18,7 @@
     GLenum err = glGetError(); \
     if(err != GL_NO_ERROR) { \
 	cerr << "Error in " << DESC << ":" << endl; \
-	cerr << "\t>> " << gluErrorString(err) << endl; \
+	cerr << "\t>> No is: " << err << " String is: " << gluErrorString(err) << endl; \
 	assert(err == GL_NO_ERROR); \
     } \
 }

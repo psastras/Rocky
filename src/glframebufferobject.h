@@ -12,7 +12,7 @@ struct GLFramebufferObjectParams {
 class GLFramebufferObject
 {
 public:
-    GLFramebufferObject(GLFramebufferObjectParams &params);
+    GLFramebufferObject(GLFramebufferObjectParams params);
     ~GLFramebufferObject();
 
     const GLuint *color_attachments() { return color_; }
@@ -30,6 +30,8 @@ public:
     void blit(GLFramebufferObject &dst); /// blit contents into the destination framebuffer
     GLuint* texture();
     GLuint depth();
+    
+    void checkStatus();
 
     static int queryMaxSamples();
     static int queryMaxAttachments();

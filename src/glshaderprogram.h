@@ -35,9 +35,12 @@ public:
 	return attributes_[name];
     }
 
-    
     inline void setUniformValue(const char *name, bool value) {
 	glUniform1i(getUniformLocation(name), value);
+    }
+    
+    inline void setUniformValue(const char *name, float *mat4x4) {
+	 glUniformMatrix4fv(getUniformLocation(name), 1, false, mat4x4);
     }
 
     inline void setGeometryInputType(GLenum type) {

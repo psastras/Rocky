@@ -39,6 +39,7 @@ WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	return 0;
     case WM_SIZE:
 	//glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+	
 	pEngine->resize(LOWORD(lParam), HIWORD(lParam));
 	//std::cout << "(w , h) : " << LOWORD(lParam) << " x " << HIWORD(lParam) << std::endl;
         return 0;
@@ -146,7 +147,7 @@ double GetCounter() {
 }
 
 int main(int argc, char *argv[]) {
-    WindowProperties properties = {1600, 900};
+    WindowProperties properties = {1440, 900};
     HDC hDC;				/* device context */
     HGLRC hRC;				/* opengl context */
     HWND  hWnd;				/* window */

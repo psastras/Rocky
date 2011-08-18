@@ -2,15 +2,14 @@
 #include "glcommon.h"
 #include "common.h"
 
-GLFramebufferObject::GLFramebufferObject(GLFramebufferObjectParams &params) {
+GLFramebufferObject::GLFramebufferObject(GLFramebufferObjectParams params) {
 
     params_ = params;
-
+    
     // @todo: should check the parameters to maker sure they make sense
     // instead were just going to check for a glError, if one of the parameters
     // is not correct it will probably result in a gl error
-
-    this->allocFramebuffer(params);
+    this->allocFramebuffer(params_);
     GLERROR("creating framebuffer object");
 
 }
@@ -44,7 +43,7 @@ void GLFramebufferObject::bindsurface(int idx) {
 // @todo: add stencil buffer support and error handling (esp. for nonsupported formats)
 void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
     glGenFramebuffersEXT(1, &id_);
-    if(params.nColorAttachments) return;
+    if(!params.nColorAttachments) return;
     this->bind();
     
     if(params.type == GL_TEXTURE_2D)
@@ -63,12 +62,13 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	
 	if(params.type == GL_TEXTURE_2D) {
 	
-	    glGenRenderbuffersEXT(params.nColorAttachments, &color_[0]);
+	    glGenRenderbuffers(params.nColorAttachments, &color_[0]);
 	    for(int i=0; i<params.nColorAttachments; i++) {
 		glBindRenderbuffer(GL_RENDERBUFFER, color_[i]);
-		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, params.nSamples, params.format, params.width, params.height);
-		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0 + i, GL_RENDERBUFFER, color_[i]);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.format, params.width, params.height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_RENDERBUFFER, color_[i]);
 	    }
+	    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	} else if(params.type == GL_TEXTURE_3D) {
 	    cerr << "3D textures with multisample framebuffers currently not supported.";
 	    assert(0);
@@ -83,6 +83,8 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 		glBindTexture(params.type, color_[i]);
 		glTexParameterf(params.type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameterf(params.type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexImage2D(GL_TEXTURE_2D, 0, params.format, params.width, params.height, 0, GL_LUMINANCE, GL_FLOAT, 0);
 	        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, color_[i], 0);
 	    }
@@ -106,23 +108,24 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	}
     }
 
-
     if(params.hasDepth) {
-	
 	if(params.nSamples > 0) {
-	    glGenRenderbuffersEXT(1, &depth_);
-	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depth_);
-	    glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, params.nSamples, params.depthFormat, params.width, params.height);
-	    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, depth_);
-	    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+	    glGenRenderbuffers(1, &depth_);
+	    glBindRenderbuffer(GL_RENDERBUFFER, depth_);
+	    glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.depthFormat, params.width, params.height);
+	    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_);
+	    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	    
+	    
 	} else {
 	    glGenTextures(1, &depth_);
 	    glBindTexture(params.type, depth_);
-	    glTexParameteri(params.type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	    glTexParameteri(params.type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	    glTexParameterf(params.type, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	    glTexParameterf(params.type, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	    glTexParameteri(params.type, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	    glTexParameteri(params.type, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
 	    glTexImage2D(params.type, 0, params.depthFormat, params.width, params.height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 	    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_, 0);
 	    glBindTexture(params.type, 0);
@@ -170,6 +173,57 @@ GLuint GLFramebufferObject::depth() {
 void GLFramebufferObject::bind() {
     
      glBindFramebuffer(GL_FRAMEBUFFER, id_);
+}
+
+void GLFramebufferObject::checkStatus() {
+    GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    switch(status) {
+	case GL_FRAMEBUFFER_COMPLETE:
+	    return;
+	    break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+	std::cerr << "An attachment could not be bound to frame buffer object!" << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+	std::cerr <<  "Attachments are missing! At least one image (texture) must be bound to the frame buffer object!" << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+	std::cerr <<  "The dimensions of the buffers attached to the currently used frame buffer object do not match!" << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+	std::cerr <<  "The formats of the currently used frame buffer object are not supported or do not fit together!" << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+	std::cerr <<  "A Draw buffer is incomplete or undefinied. All draw buffers must specify attachment points that have images attached." << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+	std::cerr <<  "A Read buffer is incomplete or undefinied. All read buffers must specify attachment points that have images attached." << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+	std::cerr <<  "All images must have the same number of multisample samples." << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS :
+	std::cerr <<  "If a layered image is attached to one attachment, then all attachments must be layered attachments. The attached layers do not have to have the same number of layers, nor do the layers have to come from the same kind of texture." << std::endl;
+	break;
+    
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+	std::cerr <<  "Attempt to use an unsupported format combinaton!" << std::endl;
+	break;
+    
+    default:
+	std::cerr <<  "Unknown error while attempting to create frame buffer object!" << std::endl;
+	break;
+    }
+    
+    assert(0);
 }
 
 void GLFramebufferObject::release() {

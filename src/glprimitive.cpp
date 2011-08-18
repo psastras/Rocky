@@ -61,7 +61,9 @@ void GLPrimitive::draw(GLShaderProgram *program) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
+
     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
+    
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     if(ids[0] >= 0) glDisableVertexAttribArray(ids[0]);

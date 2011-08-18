@@ -8,7 +8,7 @@
 #include "glperlinterrain.h"
 #include <vsml.h>
 
-GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer;
+GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer0, *pFramebuffer1;
 GLPrimitive *pQuad;
 GLEngine::GLEngine(WindowProperties &properties) {
 
@@ -35,15 +35,15 @@ GLEngine::GLEngine(WindowProperties &properties) {
     camera_.near = 1.0;
     camera_.far = 7000.0;
     camera_.rotx = camera_.roty = 0.f;
-    camera_.fovy = 50.0;
+    camera_.fovy = 65.0;
 
     GLFramebufferObjectParams params;
     params.width = properties.width;
     params.height = properties.height;
     params.hasDepth = true;
-    params.depthFormat = GL_DEPTH_COMPONENT;
+    params.depthFormat = GL_DEPTH_COMPONENT16;
     params.format = GL_RGBA16F;
-    params.nColorAttachments = 1;
+    params.nColorAttachments = 2;
     params.nSamples = GLFramebufferObject::queryMaxSamples() / 2;
     params.type = GL_TEXTURE_2D;
     pMultisampleFramebuffer = new GLFramebufferObject(params);
@@ -51,8 +51,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.hasDepth = false;
     params.nSamples = 0;
 
-    pFramebuffer = new GLFramebufferObject(params);
-
+    pFramebuffer0 = new GLFramebufferObject(params);
+    pFramebuffer1 = new GLFramebufferObject(params);
     primitives_["quad1"] = new GLQuad(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
@@ -71,6 +71,16 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["default"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/default.glsl");
     shaderPrograms_["default"]->link();
 
+    shaderPrograms_["post0"] = new GLShaderProgram();
+    shaderPrograms_["post0"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/post0.glsl");
+    shaderPrograms_["post0"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/post0.glsl");
+    shaderPrograms_["post0"]->link();
+    
+    shaderPrograms_["post1"] = new GLShaderProgram();
+    shaderPrograms_["post1"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/post1.glsl");
+    shaderPrograms_["post1"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/post1.glsl");
+    shaderPrograms_["post1"]->link();
+    
     shaderPrograms_["solid"] = new GLShaderProgram();
     shaderPrograms_["solid"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/solid.glsl");
     shaderPrograms_["solid"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/solid.glsl");
@@ -82,18 +92,20 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->link();
-    
+        
     GLPerlinTerrainParams paramsT;
     paramsT.resolution = 128;
     paramsT.gain = 0.61;
-    paramsT.grid = float2(30,30);
+    paramsT.grid = float2(28,28);
     paramsT.lacunarity = 1.7;
     paramsT.offset = 1;
-    paramsT.noiseScale = .1;
+    paramsT.noiseScale = .15;
     paramsT.tess = 512;
     paramsT.octaves = 11;
     terrain_ = new GLPerlinTerrain(paramsT, this);
-    lightPos_ = float3(1.0, 0.5, 0.0).getNormalized();
+    
+    lightPos_ = float3(1.0, 0.1, 0.0).getNormalized();
+    
 }
 
 
@@ -109,47 +121,80 @@ void GLEngine::resize(int w, int h) {
     primitives_["quad1"]->tesselate(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
-   pMultisampleFramebuffer->resize(width_, height_);
-   pFramebuffer->resize(width_, height_);
+ 
+    pMultisampleFramebuffer->resize(width_, height_);
+    
+    pFramebuffer0->resize(width_, height_);
+    pFramebuffer1->resize(width_, height_);
+    
+    maxMipLevel_ = (log10((float)max(width_, height_)) / log10(2.f));
+   
 }
-
+float currentViewMatrices[2][16];
+float previousViewMatrices[2][16];
 void GLEngine::draw(float time, float dt, const KeyboardController *keyController) {
+     
     processKeyEvents(keyController, dt);
-    GLenum outputTex[8] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-			   GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
-			   GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
-			   GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7}; 
-    glEnable(GL_DEPTH_TEST);
+
     
-    
-    GLERROR("check-2");
+    memcpy(&previousViewMatrices[0][0], &currentViewMatrices[0][0], sizeof(float)*16);
+    memcpy(&previousViewMatrices[1][0], &currentViewMatrices[1][0], sizeof(float)*16);
+
+    GLenum outputTex[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}; 
     this->vsmlPersepective();
-GLERROR("check-1");
+  
+    memcpy(&currentViewMatrices[0][0], vsml_->get(VSML::MODELVIEW), sizeof(float)*16);
+    memcpy(&currentViewMatrices[1][0], vsml_->get(VSML::PROJECTION), sizeof(float)*16);
+
     pMultisampleFramebuffer->bind();
-     GLERROR("check0");
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear( GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
-  //  glDrawBuffers(2, outputTex); 
     shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color0", 0);
     shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color1", 1);
     shaderPrograms_["icosohedron"]->setUniformValue("lightPos", lightPos_);
+    pMultisampleFramebuffer->checkStatus();
+    glDrawBuffers(2, outputTex); 
     primitives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
+    glEnable(GL_DEPTH_TEST);
     terrain_->draw(vsml_, time);
+    glDrawBuffers(1, outputTex); 
     pMultisampleFramebuffer->release();
-    pMultisampleFramebuffer->blit(*pFramebuffer);
-    
-    GLERROR("check");
-    
+    pMultisampleFramebuffer->blit(*pFramebuffer0);
+        
     glDisable(GL_DEPTH_TEST);
     this->vsmlOrtho();
-    shaderPrograms_["default"]->bind(vsml_);
+    shaderPrograms_["post0"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
-    pFramebuffer->bindsurface(0);
-    shaderPrograms_["default"]->setUniformValue("tex", 0);
+    pFramebuffer0->bindsurface(0);
+    shaderPrograms_["post0"]->setUniformValue("tex", 0);
+    glActiveTexture(GL_TEXTURE1);
+    pFramebuffer0->bindsurface(1);
+    shaderPrograms_["post0"]->setUniformValue("posTex", 1);
+    glActiveTexture(GL_TEXTURE0);
+    
+    pFramebuffer1->bind();
+    shaderPrograms_["post0"]->setUniformValue("modelviewMatrixPrev", previousViewMatrices[0]);
+    shaderPrograms_["post0"]->setUniformValue("projMatrixPrev", previousViewMatrices[1]);
+    shaderPrograms_["post0"]->setUniformValue("modelviewMatrixCurr", currentViewMatrices[0]);
+    shaderPrograms_["post0"]->setUniformValue("projMatrixCurr", currentViewMatrices[1]);
+    shaderPrograms_["post0"]->setUniformValue("lightPos", lightPos_);
+    primitives_["quad1"]->draw(shaderPrograms_["post0"]);
+    pFramebuffer0->unbindsurface();
+    shaderPrograms_["post0"]->release();
+    pFramebuffer1->release();
+    
+    
+    shaderPrograms_["post1"]->bind(vsml_);
+    glActiveTexture(GL_TEXTURE0);
+    pFramebuffer1->bindsurface(0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+    glGenerateMipmap(GL_TEXTURE_2D);
+    shaderPrograms_["post1"]->setUniformValue("tex", 0);
     primitives_["quad1"]->draw(shaderPrograms_["default"]);
-    pFramebuffer->unbindsurface();
-    shaderPrograms_["default"]->release();
+    pFramebuffer1->unbindsurface();
+     
     camera_.orthogonal_camera(width_, height_);
 }
 
@@ -205,7 +250,7 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 #define KEY_SPACE 65
 #endif
 
-    float delta = sensitivity * 10.0 / dt;
+    float delta = sensitivity * 20.0 / dt;
     if(keycontroller->isKeyDown(KEY_W)) { //W
 	float yrotrad = camera_.roty / 180 * 3.141592654f;
 	float xrotrad = camera_.rotx / 180 * 3.141592654f;

@@ -26,3 +26,5 @@ shaders/normals.glsl
 3rdparty/fftw/fftw3.h
 src/glfftwater.h
 src/glfftwater.cpp
+shaders/post0.glsl
+shaders/post1.glsl

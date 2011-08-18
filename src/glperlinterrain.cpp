@@ -26,15 +26,15 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
 			   float3(params_.resolution, params_.resolution, 1));
     
     GLFFTWaterParams fftparams;
-    fftparams.A = 0.00000015f;
+    fftparams.A = 0.0000005f;
     fftparams.V = 10.0f;
     fftparams.w = 200 * 3.14159f / 180.0f;
     fftparams.L = 200.0;
     fftparams.N = 256;
-    fftparams.chop = 7.0;
+    fftparams.chop = 3.0;
     fftwater_ = new GLFFTWater(fftparams);
     
-    lod_ = 15.f;
+    lod_ = 13.f;
     
     this->generateTerrain(engine_->vsml());
 }
@@ -189,6 +189,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	perlinShader_->setFragDataLocation("out_Color7", 7);
 	glDrawBuffers(8, outputTex); 
 	quad->draw(perlinShader_);
+	glDrawBuffers(1, outputTex); 
 	perlinShader_->release();
 	framebuffers_[i]->release();
     }
@@ -290,6 +291,8 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     drawShader_->setUniformValue("lightPos", engine_->light());
     drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     drawShader_->setUniformValue("D", terrain_->scale().x);
+    drawShader_->setFragDataLocation("out_Color0", 0);
+    drawShader_->setFragDataLocation("out_Color1", 1);
     terrain_->draw(drawShader_, instances_);
     glBindTexture(GL_TEXTURE_3D, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
