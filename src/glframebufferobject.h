@@ -25,7 +25,7 @@ public:
     void bindsurface(int idx);
     void unbindsurface() { glBindTexture(params_.type, 0); }
     void release();
-    
+ 
     void resize(int width, int height);
     void blit(GLFramebufferObject &dst); /// blit contents into the destination framebuffer
     GLuint* texture();

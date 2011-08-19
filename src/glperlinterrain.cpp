@@ -5,6 +5,8 @@
 #include "glprimitive.h"
 #include "glframebufferobject.h"
 #include "glfftwater.h"
+#include "gltextureloader.h"
+#include <IL/il.h>
 GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine) {
     params_ = params;
     engine_ = engine;
@@ -35,6 +37,8 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     fftwater_ = new GLFFTWater(fftparams);
     
     lod_ = 13.f;
+    
+  
     
     this->generateTerrain(engine_->vsml());
 }
@@ -194,7 +198,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	framebuffers_[i]->release();
     }
     
-    /*
+    
     
     //create normal map
     glGenTextures(1, &normalmap_);
@@ -204,7 +208,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_R16F, params_.resolution, params_.resolution, 
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB16F, params_.resolution, params_.resolution, 
 		 instances_, 0, GL_LUMINANCE, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_3D, 0);
     // manually attach 3d layers to the framebuffers
@@ -217,8 +221,8 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	}
 	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
-    }*/
-    /*
+    }
+    
     lightingShader_ = new GLShaderProgram();
     lightingShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/normals.glsl");
     lightingShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/normals.glsl");
@@ -230,11 +234,11 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	    layers[i] = (i+0.5) / (float)instances_;
 	}
     }
-    
+
     for(int i=0; i<noBuffers; i++) { 
 	framebuffers_[i]->bind();
 	
-	lightingShader_->bind();
+	lightingShader_->bind(vsml);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, heightmap_);
 	lightingShader_->setUniformValue("tex", 0);
@@ -256,7 +260,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     
     }
     
-    */
+    
     
 //    glDrawBuffers(1, outputTex); 
      
@@ -269,6 +273,9 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     delete[] offsets;
     //delete[] layers;
 
+    
+    GLTextureLoader::instance()->loadImage("textures/hello.bmp", "test",
+					   GL_RGB, IL_RGB, IL_FLOAT);
 }
 
 
@@ -284,6 +291,14 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, tex);
     drawShader_->setUniformValue("waterTex", 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_3D, normalmap_);
+    drawShader_->setUniformValue("normalTex", 2);
+    
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["test"].glTexId);
+    drawShader_->setUniformValue("testTex", 3);
+    
     if(engine_->renderMode() == WIREFRAME) drawShader_->setUniformValue("wireframe", true);
     else drawShader_->setUniformValue("wireframe", false);
     drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);

@@ -3,7 +3,9 @@
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
 uniform sampler3D tex;
+uniform sampler3D normalTex;
 uniform sampler2D waterTex;
+uniform sampler2D testTex;
 uniform vec2 grid;
 uniform float D;
 uniform bool wireframe = false;
@@ -13,6 +15,7 @@ uniform float waterLevel = 0.0;
 const float tile =0.015;
 const float attenuation = 0.075;
 uniform float LOD;
+
 #ifdef _VERTEX_
 in vec3 in_Position;
 in vec3 in_Normal;
@@ -221,13 +224,19 @@ vec4 water(vec3 normal, vec4 pos) {
     vec3 reflDir = reflect(eyeDir, norm);
     vec4 transColor = vec4(0.0, 0.278, 0.321, 0.0);
     float cos_angle = max(dot(norm, eyeDir), 0.3);
+    
     vec4 waterColor = mix(baseColor, transColor*transColor, cos_angle);
     reflDir = normalize(reflDir);
-    vec4 atmoColor = atmosphere(reflDir);
     
+    vec4 atmoColor = atmosphere(reflDir)*1.5;
+    
+    float distance = length(cameraPos.xyz - pos.xyz);
+    distance *= .005;
+    distance = clamp(distance, 0, 1);
     //add foam if near shore
+    float lightAngle = max(dot(norm, lightPos), 0.8);
     
-    return mix(waterColor, atmoColor, 0.6);
+    return mix(waterColor, atmoColor, 0.6*distance);
 }
 
 float amplify(float d, float scale, float offset) {
@@ -241,10 +250,10 @@ vec4 computeFFTNormal(vec2 pos, float atten) {
     float delta =(1.0/256.0);
     pos *= tile;
     
-    float p0 = texture(waterTex, (pos + vec2(0.0, -delta)) ).y * atten;
-    float p1 = texture(waterTex, (pos + vec2(-delta, 0.0) )).y * atten;
-    float p2 = texture(waterTex, (pos + vec2(delta, 0.0) ) ).y * atten;
-    float p3 = texture(waterTex, (pos + vec2(0.0, delta) ) ).y * atten;
+    float p0 = texture(waterTex, (pos + vec2(0.0,-delta)) ).y * atten;
+    float p1 = texture(waterTex, (pos + vec2(-delta,0.0) )).y * atten;
+    float p2 = texture(waterTex, (pos + vec2(delta,0.0) ) ).y * atten;
+    float p3 = texture(waterTex, (pos + vec2(0.0,delta) ) ).y * atten;
     
     return vec4(p1-p2,2.0*200.0*delta,p0-p3,0.0);
 }
@@ -257,21 +266,29 @@ vec4 refractTerrain(vec3 disp, vec3 normal, float depth) { //fake refraction bas
     return vec4(.7, .7, .6, 1.0)*pVal;
 }
 
+
 void main() {
   
     float h = texture(tex, fTexCoord).x;
     float pVal = (1.0-(h*0.01+0.25));
     out_Color0 = vec4(.7, .7, .6, 1.0)*pVal + vec4(0.3, 0.5, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
+    out_Color0 = mix(texture(testTex, fTexCoord.st*8.0), out_Color0, min(pVal+0.1, 1.0));
+    vec3 N = texture(normalTex, fTexCoord).xyz;
+    vec3 L = normalize(fPosition.xyz-lightPos);
+    float NL = dot(N, L)*0.25+1.3;
+    
+    out_Color0.xyz  *= NL;
+    
     float dH = abs(h - waterLevel)*attenuation;
     
     
     float waterStrength = 1.0-clamp((-h*attenuation-waterLevel),0.0,1.0);
     if(waterStrength < 1.0) {
 	vec3 I = fPosition.xyz - cameraPos.xyz;
-	vec3 N = computeFFTNormal(fPosition.xz, dH).xyz;
+	vec3 fftN = computeFFTNormal(fPosition.xz, dH).xyz;
 	vec3 displacement = texture(waterTex, fPosition.xz*tile).xyz;
-	out_Color0 = mix(water(N, fPosition), 
-	                refractTerrain(displacement, N, dH), waterStrength);
+	out_Color0 = mix(water(fftN, fPosition), 
+	                refractTerrain(displacement, fftN, dH) * NL, waterStrength);
     }
     
     if(wireframe) {

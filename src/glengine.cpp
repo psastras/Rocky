@@ -6,13 +6,17 @@
 #include "glshaderprogram.h"
 #include "keyboardcontroller.h"
 #include "glperlinterrain.h"
+#include "gltextureloader.h"
 #include <vsml.h>
+#include <IL/il.h>
 
+GLTextureLoader *GLTextureLoader::s_instance = 0;
 GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer0, *pFramebuffer1;
 GLPrimitive *pQuad;
+void hello() {}
 GLEngine::GLEngine(WindowProperties &properties) {
-
-    renderMode_ = FILL;
+    //std::thread t(hello);
+    //renderMode_ = FILL;
 
     //init gl setup
     vsml_ = VSML::getInstance();
@@ -48,7 +52,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.type = GL_TEXTURE_2D;
     pMultisampleFramebuffer = new GLFramebufferObject(params);
 
-    params.hasDepth = false;
+    params.hasDepth = true;
     params.nSamples = 0;
 
     pFramebuffer0 = new GLFramebufferObject(params);
@@ -94,7 +98,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
         
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 128;
+    paramsT.resolution = 180;
     paramsT.gain = 0.61;
     paramsT.grid = float2(28,28);
     paramsT.lacunarity = 1.7;
@@ -105,6 +109,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     terrain_ = new GLPerlinTerrain(paramsT, this);
     
     lightPos_ = float3(1.0, 0.1, 0.0).getNormalized();
+    
     
 }
 
@@ -126,7 +131,7 @@ void GLEngine::resize(int w, int h) {
     
     pFramebuffer0->resize(width_, height_);
     pFramebuffer1->resize(width_, height_);
-    
+    camera_.orthogonal_camera(width_, height_);
     maxMipLevel_ = (log10((float)max(width_, height_)) / log10(2.f));
    
 }
@@ -157,11 +162,17 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     primitives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
     glEnable(GL_DEPTH_TEST);
+    
+    // join fft computation thread
+    
     terrain_->draw(vsml_, time);
+    
+    // start next fft computation thread
+    
     glDrawBuffers(1, outputTex); 
     pMultisampleFramebuffer->release();
     pMultisampleFramebuffer->blit(*pFramebuffer0);
-        
+    
     glDisable(GL_DEPTH_TEST);
     this->vsmlOrtho();
     shaderPrograms_["post0"]->bind(vsml_);
@@ -172,7 +183,7 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     pFramebuffer0->bindsurface(1);
     shaderPrograms_["post0"]->setUniformValue("posTex", 1);
     glActiveTexture(GL_TEXTURE0);
-    
+  
     pFramebuffer1->bind();
     shaderPrograms_["post0"]->setUniformValue("modelviewMatrixPrev", previousViewMatrices[0]);
     shaderPrograms_["post0"]->setUniformValue("projMatrixPrev", previousViewMatrices[1]);
@@ -187,15 +198,27 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     
     shaderPrograms_["post1"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
+    
     pFramebuffer1->bindsurface(0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
     glGenerateMipmap(GL_TEXTURE_2D);
+    
     shaderPrograms_["post1"]->setUniformValue("tex", 0);
-    primitives_["quad1"]->draw(shaderPrograms_["default"]);
+    shaderPrograms_["post1"]->setUniformValue("maxMipLevel", (float)maxMipLevel_);
+    primitives_["quad1"]->draw(shaderPrograms_["post1"]);
+    shaderPrograms_["post1"]->release();
     pFramebuffer1->unbindsurface();
-     
-    camera_.orthogonal_camera(width_, height_);
+    
+    /*
+    glActiveTexture(GL_TEXTURE0);
+    pFramebuffer0->bindsurface(0);
+    shaderPrograms_["default"]->bind(vsml_);
+    shaderPrograms_["default"]->setUniformValue("tex", 0);
+    primitives_["quad1"]->draw(shaderPrograms_["default"]);
+    pFramebuffer0->unbindsurface();
+     shaderPrograms_["default"]->release();*/
+
 }
 
 void GLEngine::vsmlOrtho() {

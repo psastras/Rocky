@@ -145,7 +145,7 @@ double GetCounter() {
     QueryPerformanceCounter(&li);
     return double(li.QuadPart-CounterStart)/PCFreq;
 }
-
+#define GLEW_STATIC
 int main(int argc, char *argv[]) {
     WindowProperties properties = {1440, 900};
     HDC hDC;				/* device context */

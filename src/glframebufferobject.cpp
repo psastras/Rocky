@@ -1,11 +1,9 @@
 #include "glframebufferobject.h"
 #include "glcommon.h"
 #include "common.h"
-
 GLFramebufferObject::GLFramebufferObject(GLFramebufferObjectParams params) {
-
-    params_ = params;
     
+    params_ = params;
     // @todo: should check the parameters to maker sure they make sense
     // instead were just going to check for a glError, if one of the parameters
     // is not correct it will probably result in a gl error

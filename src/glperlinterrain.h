@@ -3,7 +3,9 @@
 
 #include "common.h"
 #include "glcommon.h"
+#include <unordered_map>
 
+using namespace std;
 class GLShaderProgram;
 class GLPrimitive;
 class GLFramebufferObject;
@@ -42,6 +44,7 @@ protected:
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
     GLuint vboPosID_, vaoID_;
+    
     GLFFTWater *fftwater_;
     float lod_;
 };

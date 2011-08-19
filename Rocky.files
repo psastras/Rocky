@@ -28,3 +28,5 @@ src/glfftwater.h
 src/glfftwater.cpp
 shaders/post0.glsl
 shaders/post1.glsl
+src/gltextureloader.h
+src/gltextureloader.cpp

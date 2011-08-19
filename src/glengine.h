@@ -63,6 +63,7 @@ protected:
     VSML *vsml_;
     unordered_map<const char*, GLShaderProgram *, hash<const char*>, eqstr> shaderPrograms_;
     unordered_map<const char*, GLPrimitive *> primitives_;
+
     RenderMode renderMode_;
     int maxMipLevel_;
     GLPerlinTerrain *terrain_;

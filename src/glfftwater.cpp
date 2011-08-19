@@ -1,3 +1,4 @@
+
 #include "glfftwater.h"
 #include <tr1/random>
 #include <malloc.h>
@@ -50,13 +51,13 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 		m_kx[y*(hN+1)+x] = kx*k;
 	}
     }
-/*
+
     if(!fftwf_init_threads()) {
 	cerr << "Error initializing multithreaded fft."  << endl;
     } else {
-	fftwf_plan_with_nthreads(2);
+	fftwf_plan_with_nthreads(4);
     }
-  */
+  
     m_fftplan = fftwf_plan_dft_c2r_2d(m_params.N, m_params.N, (fftwf_complex *)m_h, m_h, FFTW_ESTIMATE);
 
     glGenTextures(1, &m_texId);
@@ -68,11 +69,11 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 }
 
 float GLFFTWater::phillips(float kx, float ky, float& w) {
-	const float damping = 1.f / 1.f;
+	const float damping = 1.f / 2.f;
 	float kk = kx*kx+ky*ky;
 	float kw = kx*cosf(m_params.w)+ky*sinf(m_params.w);
 	float l = m_params.V*m_params.V /  9.81;
-	w = powf((9.81*sqrtf(kk)),0.8f); //compute the dispersion relation
+	w = powf((9.81*sqrtf(kk)),1.0f); //compute the dispersion relation
 	float p = m_params.A*expf(-1.f / (l*l*kk))/(kk*kk*kk)*(kw*kw);
 	float d = expf(-kk*damping*damping);
 	return kw < 0.f ? p*0.25f*d : p*d;
@@ -119,6 +120,7 @@ float3 *GLFFTWater::computeHeightfield(float t) {
 	m_dz[m_params.N + hNp2*hN] = 0.f;
 	m_dx[m_params.N + hNp2*hN+1] = 0.f;
 	m_dz[m_params.N + hNp2*hN+1] = 0.f;
+	
 
 	fftwf_execute_dft_c2r(m_fftplan, (fftwf_complex *)m_h, m_h);
 	fftwf_execute_dft_c2r(m_fftplan, (fftwf_complex *)m_dx, m_dx);
