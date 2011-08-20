@@ -6,6 +6,7 @@ uniform sampler3D tex;
 uniform sampler3D normalTex;
 uniform sampler2D waterTex;
 uniform sampler2D testTex;
+uniform sampler2D sandTex;
 uniform vec2 grid;
 uniform float D;
 uniform bool wireframe = false;
@@ -49,8 +50,8 @@ uniform float TessLevelOuter;
 
 float lod(vec3 pos) {
     vec3 distance = cameraPos.xyz-(pos.xyz*0.5);
-    distance *= 0.03; //bigger = lower tesselation
-    float d = LOD-clamp(length(distance),0.0,LOD-1);
+    distance *= 0.09; //bigger = lower tesselation
+    float d = LOD-clamp(pow(length(distance), 0.8),0.0,LOD-1);
     return d;
 }
 
@@ -234,7 +235,6 @@ vec4 water(vec3 normal, vec4 pos) {
     distance *= .005;
     distance = clamp(distance, 0, 1);
     //add foam if near shore
-    float lightAngle = max(dot(norm, lightPos), 0.8);
     
     return mix(waterColor, atmoColor, 0.6*distance);
 }
@@ -263,8 +263,15 @@ vec4 refractTerrain(vec3 disp, vec3 normal, float depth) { //fake refraction bas
     coord.xz += disp.xz*depth*depth*normal.y*0.002;
     float h = texture(tex, coord).x;
     float pVal = h*0.01+0.75;
-    return vec4(.7, .7, .6, 1.0)*pVal;
+    vec4 sand = texture(sandTex, coord.st*18.0);
+    return mix(sand, vec4(.7, .7, .6, 1.0)*pVal,1.0-max(pVal-0.5, -0.1)) ;
 }
+
+vec4 reflectTerrain(vec3 wspos) {
+    return vec4(0.0);
+}
+
+
 
 
 void main() {
@@ -272,13 +279,20 @@ void main() {
     float h = texture(tex, fTexCoord).x;
     float pVal = (1.0-(h*0.01+0.25));
     out_Color0 = vec4(.7, .7, .6, 1.0)*pVal + vec4(0.3, 0.5, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
-    out_Color0 = mix(texture(testTex, fTexCoord.st*8.0), out_Color0, min(pVal+0.1, 1.0));
+    vec4 sand = texture(sandTex, fTexCoord.st*18.0);
+    out_Color0 = mix(sand, mix(texture(testTex, fTexCoord.st*8.0), 
+                     out_Color0, min(pVal+0.1, 1.0)), 1.0-max(pVal-0.5, -0.1));
     vec3 N = texture(normalTex, fTexCoord).xyz;
     vec3 L = normalize(fPosition.xyz-lightPos);
+    vec3 V = normalize(cameraPos.xyz-fPosition.xyz);
+    vec3 R = reflect(L, N);
+    float spec = max(pow(dot(R, -V), 4.0), 0.5);
+    out_Color0 += vec4(out_Color0)*spec*0.5;
+    
     float NL = dot(N, L)*0.25+1.3;
     
     out_Color0.xyz  *= NL;
-    
+   //     out_Color0.xyz = N;
     float dH = abs(h - waterLevel)*attenuation;
     
     
@@ -287,8 +301,10 @@ void main() {
 	vec3 I = fPosition.xyz - cameraPos.xyz;
 	vec3 fftN = computeFFTNormal(fPosition.xz, dH).xyz;
 	vec3 displacement = texture(waterTex, fPosition.xz*tile).xyz;
-	out_Color0 = mix(water(fftN, fPosition), 
-	                refractTerrain(displacement, fftN, dH) * NL, waterStrength);
+	vec4 foamColor = vec4(1.0);
+	out_Color0 =(
+		    mix(water(fftN, fPosition), 
+	                refractTerrain(displacement, fftN, dH) * NL+(out_Color0)*spec*0.5, waterStrength) );
     }
     
     if(wireframe) {
@@ -298,6 +314,9 @@ void main() {
     }
     out_Color1 = fPosition;
     out_Color0.w = 0.0;
+    
+
 }
 
 #endif
+

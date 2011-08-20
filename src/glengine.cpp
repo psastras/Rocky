@@ -13,7 +13,6 @@
 GLTextureLoader *GLTextureLoader::s_instance = 0;
 GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer0, *pFramebuffer1;
 GLPrimitive *pQuad;
-void hello() {}
 GLEngine::GLEngine(WindowProperties &properties) {
     //std::thread t(hello);
     //renderMode_ = FILL;
@@ -48,7 +47,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.depthFormat = GL_DEPTH_COMPONENT16;
     params.format = GL_RGBA16F;
     params.nColorAttachments = 2;
-    params.nSamples = GLFramebufferObject::queryMaxSamples() / 2;
+    params.nSamples = 8;//GLFramebufferObject::queryMaxSamples();
+    params.nCSamples = 16;
     params.type = GL_TEXTURE_2D;
     pMultisampleFramebuffer = new GLFramebufferObject(params);
 
@@ -98,14 +98,14 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
         
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 180;
+    paramsT.resolution = 256;
     paramsT.gain = 0.61;
-    paramsT.grid = float2(28,28);
+    paramsT.grid = float2(17,17);
     paramsT.lacunarity = 1.7;
     paramsT.offset = 1;
     paramsT.noiseScale = .15;
     paramsT.tess = 512;
-    paramsT.octaves = 11;
+    paramsT.octaves = 16;
     terrain_ = new GLPerlinTerrain(paramsT, this);
     
     lightPos_ = float3(1.0, 0.1, 0.0).getNormalized();
@@ -210,14 +210,15 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     shaderPrograms_["post1"]->release();
     pFramebuffer1->unbindsurface();
     
-    /*
-    glActiveTexture(GL_TEXTURE0);
-    pFramebuffer0->bindsurface(0);
+    
+   
     shaderPrograms_["default"]->bind(vsml_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, pFramebuffer0->depth());
     shaderPrograms_["default"]->setUniformValue("tex", 0);
     primitives_["quad1"]->draw(shaderPrograms_["default"]);
     pFramebuffer0->unbindsurface();
-     shaderPrograms_["default"]->release();*/
+     shaderPrograms_["default"]->release();
 
 }
 

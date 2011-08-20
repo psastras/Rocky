@@ -18,7 +18,7 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(7, 0, 7),
+    terrain_ = new GLRect(float3(10, 0, 10),
 			 float3(0, 0, 0),
 			 float3(100, 1, 100));
     
@@ -33,18 +33,20 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     fftparams.w = 200 * 3.14159f / 180.0f;
     fftparams.L = 200.0;
     fftparams.N = 256;
-    fftparams.chop = 3.0;
+    fftparams.chop = 2.0;
     fftwater_ = new GLFFTWater(fftparams);
     
-    lod_ = 13.f;
+    lod_ = 24.f;
     
-  
+   //182,790,400
     
     this->generateTerrain(engine_->vsml());
 }
 
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
   
+    // there be dragons ahead
+    
     int maxAttachments = GLFramebufferObject::queryMaxAttachments();
     instances_ = params_.grid.x * params_.grid.y;
     int noBuffers = (int)ceilf(instances_ / (float)maxAttachments);
@@ -251,6 +253,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	lightingShader_->setFragDataLocation("out_Color5", 5);
 	lightingShader_->setFragDataLocation("out_Color6", 6);
 	lightingShader_->setFragDataLocation("out_Color7", 7);
+	lightingShader_->setUniformValue("gird", params_.grid);
 	glDrawBuffers(8, outputTex); 
 	quad->draw(lightingShader_);
 	
@@ -274,7 +277,9 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     //delete[] layers;
 
     
-    GLTextureLoader::instance()->loadImage("textures/hello.bmp", "test",
+    GLTextureLoader::instance()->loadImage("textures/hello.bmp", "grass",
+					   GL_RGB, IL_RGB, IL_FLOAT);
+    GLTextureLoader::instance()->loadImage("textures/sand.bmp", "sand",
 					   GL_RGB, IL_RGB, IL_FLOAT);
 }
 
@@ -296,8 +301,12 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     drawShader_->setUniformValue("normalTex", 2);
     
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["test"].glTexId);
+    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["grass"].glTexId);
     drawShader_->setUniformValue("testTex", 3);
+    
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["sand"].glTexId);
+    drawShader_->setUniformValue("sandTex", 4);
     
     if(engine_->renderMode() == WIREFRAME) drawShader_->setUniformValue("wireframe", true);
     else drawShader_->setUniformValue("wireframe", false);

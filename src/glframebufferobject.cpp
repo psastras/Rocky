@@ -37,10 +37,48 @@ void GLFramebufferObject::bindsurface(int idx) {
 	glBindTexture(GL_TEXTURE_3D, color_[0]);
     }
 }
+/* //now get multisampled configs
+	    if ( coverageSampleConfigs > 0) {
+                //CSAA provides a list of all supported AA modes for quick enumeration
+                for (int kk = 0; kk < coverageSampleConfigs; kk++) {
+                    char msText[256];
+                    config.depthSamples = coverageConfigs[kk*2+1];
+                    config.coverageSamples = coverageConfigs[kk*2];
 
+                    if ( config.coverageSamples == config.depthSamples ) {
+                        // when coverage and color/depth samples are the same, it is just normal MSAA
+                        sprintf( msText, " - %d MSAA", config.depthSamples);
+                    }
+                    else {
+                        // when coverage is sampled more finely, this is a CSAA mode
+                        sprintf( msText, " - %d/%d CSAA", config.coverageSamples, config.depthSamples);
+                    }
+                    config.name = root + msText;
+            
+                    if (createFBO( config, data)) {
+                        glutAddMenuEntry( config.name.c_str(), (int)validConfigs.size());
+                        validConfigs.push_back( config);
+                    }
+                    destroyFBO( data);
+                }*/
 // @todo: add stencil buffer support and error handling (esp. for nonsupported formats)
 void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
     glGenFramebuffersEXT(1, &id_);
+    
+    params.nCSamples = params.nSamples * 2; //TODO: MAKE THIS AN OPTION;
+    
+    bool isCSAA = false;glewIsSupported( "GL_NV_framebuffer_multisample_coverage") && (params.nCSamples > params.nSamples) && params.nSamples > 1;
+    GLint coverageSampleConfigs;
+    GLint *coverageConfigs = 0;
+    
+    if(isCSAA) {
+	glGetIntegerv( GL_MAX_MULTISAMPLE_COVERAGE_MODES_NV, &coverageSampleConfigs);
+        coverageConfigs = new int[coverageSampleConfigs * 2 + 4];
+	glGetIntegerv( GL_MULTISAMPLE_COVERAGE_MODES_NV, coverageConfigs);
+    }
+    
+    
+    
     if(!params.nColorAttachments) return;
     this->bind();
     
@@ -63,7 +101,9 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	    glGenRenderbuffers(params.nColorAttachments, &color_[0]);
 	    for(int i=0; i<params.nColorAttachments; i++) {
 		glBindRenderbuffer(GL_RENDERBUFFER, color_[i]);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.format, params.width, params.height);
+		
+		if(isCSAA) glRenderbufferStorageMultisampleCoverageNV(GL_RENDERBUFFER, params.nCSamples, params.nSamples, params.format, params.width, params.height);
+		else  glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.format, params.width, params.height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_RENDERBUFFER, color_[i]);
 	    }
 	    glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -71,7 +111,7 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	    cerr << "3D textures with multisample framebuffers currently not supported.";
 	    assert(0);
 	}
-
+	
     } else { //create regular targets
 	
 	if(params.type == GL_TEXTURE_2D) {
@@ -105,12 +145,14 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	    
 	}
     }
-
+ 
     if(params.hasDepth) {
 	if(params.nSamples > 0) {
 	    glGenRenderbuffers(1, &depth_);
 	    glBindRenderbuffer(GL_RENDERBUFFER, depth_);
-	    glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.depthFormat, params.width, params.height);
+	    if(isCSAA) glRenderbufferStorageMultisampleCoverageNV(GL_RENDERBUFFER, params.nCSamples, params.nSamples, params.depthFormat, params.width, params.height); 
+	    else  glRenderbufferStorageMultisample(GL_RENDERBUFFER, params.nSamples, params.depthFormat, params.width, params.height);
+	    
 	    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_);
 	    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	    
@@ -130,8 +172,10 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	}
 
     }
+    
     //if(glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) == GL_FRAMEBUFFER_COMPLETE_EXT) { cerr << "herp derp" << endl; }
     //else cerr << "oops" << endl;
+    delete[] coverageConfigs;
     this->release();
 }
 

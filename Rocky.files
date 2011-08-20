@@ -23,10 +23,10 @@ src/glperlinterrain.h
 src/glperlinterrain.cpp
 shaders/perlin.glsl
 shaders/normals.glsl
-3rdparty/fftw/fftw3.h
 src/glfftwater.h
 src/glfftwater.cpp
 shaders/post0.glsl
 shaders/post1.glsl
 src/gltextureloader.h
 src/gltextureloader.cpp
+shaders/post2.glsl

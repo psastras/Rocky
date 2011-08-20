@@ -4,6 +4,7 @@ uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
 uniform sampler3D tex;
 uniform float layers[8]; //layers to sample from 
+uniform vec2 grid;
 #ifdef _VERTEX_
 in vec3 in_Position;
 in vec3 in_Normal;
@@ -27,11 +28,11 @@ out vec3 out_Color5;
 out vec3 out_Color6;
 out vec3 out_Color7;
 
-vec3 computeNormal(vec3 pos, float size) {
+vec3 computeNormal(vec3 pos, float size, float layers) {
     float delta =(1.0/size);    
     float ndelta = -delta;
     float prec = (0.5 / size);
-    
+    float zdelta = 1.0 / layers;
     float off0 = -delta;
     float off1 = -delta;
     float off2 = delta;
@@ -43,15 +44,36 @@ vec3 computeNormal(vec3 pos, float size) {
     float l3 = 0.0;
     
     // need to check deltas and sample from different layers if we run over
-    if(pos.x + off0 <= 0.0)  { 
-	l0 -= 1.0; 
-	off0 = 1.0 - off0;
+  /*  if(pos.x + off1 <= prec)  { 
+	l1 -= grid.x*zdelta; 
+	off1 = 1.0 - off1;
+    } else if(pos.x + off1 >= 1.0 - prec) {
+	l1 += grid.x*zdelta;
+	off1 = 1.0 - off1;
+    } else if(pos.x + off3 <= 0.0 + prec)  { 
+	l3 -= grid.x*zdelta; 
+	off3 = 1.0 - off3;
+    } else if(pos.x + off3 >= 1.0 - prec) {
+	l3 += grid.x*zdelta;
+	off3 = 1.0 - off3;
     }
-    else if(pos.x + off0 >= 1.0) {
-	l0 += 1.0;
-	off0 = 1.0 - off0;
-    }
+
     
+    
+    if(pos.y + off2 <= prec)  { 
+       l2 -= zdelta; 
+       off2 = 1.0 - off2;
+   } else if(pos.y + off2 >= 1.0-prec) {
+       l2 +=  zdelta;
+       off2 = 1.0 - off2;
+   } else if(pos.y + off0 <= prec)  { 
+       l0 -=  zdelta; 
+       off0 = 1.0 - off0;
+   } else if(pos.y + off0 >= 1.0-prec) {
+       l0 +=  zdelta;
+       off0 = 1.0 - off0;
+   }
+   */
     vec3 tc0 = pos+vec3(0.0,off0,l0);
     vec3 tc1 = pos+vec3(off1,0.0,l1);
     vec3 tc2 = pos+vec3(off2,0.0,l2);
@@ -75,14 +97,14 @@ void main() {
     float prec = 0.5 / s.x;
     vec2 c2 = vTexCoord.st;//clamp(vTexCoord.st, prec, 1.0-prec);
     
-    out_Color0 = computeNormal(vec3(c2, layers[0]), s.x);
-    out_Color1 = computeNormal(vec3(c2, layers[1]), s.x);
-    out_Color2 = computeNormal(vec3(c2, layers[2]), s.x);
-    out_Color3 = computeNormal(vec3(c2, layers[3]), s.x);
-    out_Color4 = computeNormal(vec3(c2, layers[4]), s.x);
-    out_Color5 = computeNormal(vec3(c2, layers[5]), s.x);
-    out_Color6 = computeNormal(vec3(c2, layers[6]), s.x);
-    out_Color7 = computeNormal(vec3(c2, layers[7]), s.x);
+    out_Color0 = computeNormal(vec3(c2, layers[0]), s.x, s.z);
+    out_Color1 = computeNormal(vec3(c2, layers[1]), s.x, s.z);
+    out_Color2 = computeNormal(vec3(c2, layers[2]), s.x, s.z);
+    out_Color3 = computeNormal(vec3(c2, layers[3]), s.x, s.z);
+    out_Color4 = computeNormal(vec3(c2, layers[4]), s.x, s.z);
+    out_Color5 = computeNormal(vec3(c2, layers[5]), s.x, s.z);
+    out_Color6 = computeNormal(vec3(c2, layers[6]), s.x, s.z);
+    out_Color7 = computeNormal(vec3(c2, layers[7]), s.x, s.z);
 }
 #endif
 

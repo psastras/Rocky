@@ -4,7 +4,7 @@
 #include "glcommon.h"
 
 struct GLFramebufferObjectParams {
-    int width, height, nColorAttachments, nSamples;
+    int width, height, nColorAttachments, nSamples, nCSamples;
     bool hasDepth;
     GLenum format, depthFormat, type;
 };
