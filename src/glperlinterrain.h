@@ -28,6 +28,7 @@ class GLPerlinTerrain
 {
 public:
     GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine);
+    ~GLPerlinTerrain();
     void draw (VSML *vsml, float time);
     
     GLFramebufferObject *framebuffer() const { return framebuffers_[0]; } //@todo: remove this

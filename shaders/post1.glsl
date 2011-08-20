@@ -33,9 +33,6 @@ vec4 tonemap(vec4 color) {
    return color * D / Y;
 }
 
-vec4 ssao(vec2 texCoord) {
-    return vec4(0.0);
-}
 
 void main() {
     vec4 color = tonemap(texture(tex, pass_TexCoord.st));

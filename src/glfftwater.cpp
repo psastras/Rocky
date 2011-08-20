@@ -6,6 +6,7 @@
 GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 
 #ifdef _WIN32
+    // well i hope were compiling with mingw...
     m_h = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
     m_dx = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
     m_dz = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
@@ -66,6 +67,16 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, params.N, params.N, 0, GL_RGB, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+GLFFTWater::~GLFFTWater() {
+    fftwf_free(m_htilde0);
+    __mingw_aligned_free(m_w);
+    __mingw_aligned_free(m_h);
+    __mingw_aligned_free(m_dx);
+    __mingw_aligned_free(m_dz);
+    delete[] m_kz;
+    delete[] m_kx; 
 }
 
 float GLFFTWater::phillips(float kx, float ky, float& w) {

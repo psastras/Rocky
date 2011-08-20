@@ -43,6 +43,16 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     this->generateTerrain(engine_->vsml());
 }
 
+GLPerlinTerrain::~GLPerlinTerrain() {
+    delete terrain_; 
+    delete quad_;
+    delete drawShader_;
+    delete fftwater_;
+    
+    glDeleteTextures(1, &normalmap_);
+    glDeleteTextures(1, &heightmap_);
+}
+
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
   
     // there be dragons ahead
@@ -81,7 +91,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     
     // create lookup textures
     
-    float permutation[] = { 151,160,137,91,90,15,
+    float permutation[256] = { 151,160,137,91,90,15,
     131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
     190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
     88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
@@ -101,7 +111,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 		 0,-1,1,0,1,-1,	0,-1,-1,1,1,0,0,-1,1,-1,1,0,0,-1,-1};
     
     for(int i=0;i<256;i++) permutation[i] /= 255.0;
-        
+
     GLuint textures[] = {0, 0};
     glGenTextures(2, &textures[0]);
     glBindTexture(GL_TEXTURE_1D, textures[0]);

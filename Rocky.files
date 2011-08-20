@@ -30,3 +30,4 @@ shaders/post1.glsl
 src/gltextureloader.h
 src/gltextureloader.cpp
 shaders/post2.glsl
+shaders/post3.glsl

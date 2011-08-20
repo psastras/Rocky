@@ -17,6 +17,7 @@ class GLFFTWater
 {
 public:
     GLFFTWater(GLFFTWaterParams &params);
+    ~GLFFTWater();
     float3 *computeHeightfield(float t);
     GLuint heightfieldTexture();
     const GLFFTWaterParams& params() { return m_params; }

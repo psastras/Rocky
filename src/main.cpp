@@ -147,7 +147,7 @@ double GetCounter() {
 }
 #define GLEW_STATIC
 int main(int argc, char *argv[]) {
-    WindowProperties properties = {1440, 900};
+    WindowProperties properties = {1280, 720};
     HDC hDC;				/* device context */
     HGLRC hRC;				/* opengl context */
     HWND  hWnd;				/* window */
@@ -248,6 +248,7 @@ int main(int argc, char *argv[]) {
 	pKeyController->swapBuffers();
     }
 quit:
+    delete pEngine;
     glDeleteLists(base, 256);
     wglMakeCurrent(NULL, NULL);
     ReleaseDC(hWnd, hDC);
