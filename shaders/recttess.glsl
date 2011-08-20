@@ -210,8 +210,8 @@ const vec4 wireframeColor = vec4(0.7, 0.3, 0.3, 1);
 vec4 atmosphere(vec3 pos) {
     vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
     vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
-    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * 1.; //sun color
-    float d = length(pos - lightPos)*70.0;
+    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * .2; //sun color
+    float d = length(pos - lightPos)*50.0;
     if(pos.y >= 0.0)
 	return mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
     else
@@ -279,17 +279,18 @@ void main() {
     float h = texture(tex, fTexCoord).x;
     float pVal = (1.0-(h*0.01+0.25));
     out_Color0 = vec4(.7, .7, .6, 1.0)*pVal + vec4(0.3, 0.5, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
-    vec4 sand = texture(sandTex, fTexCoord.st*18.0);
+    vec4 sand = texture(sandTex, fTexCoord.st*56.0);
     out_Color0 = mix(sand, mix(texture(testTex, fTexCoord.st*8.0), 
                      out_Color0, min(pVal+0.1, 1.0)), 1.0-max(pVal-0.5, -0.1));
     vec3 N = texture(normalTex, fTexCoord).xyz;
     vec3 L = normalize(fPosition.xyz-lightPos);
     vec3 V = normalize(cameraPos.xyz-fPosition.xyz);
-    vec3 R = reflect(L, N);
-    float spec = max(pow(dot(R, -V), 4.0), 0.5);
-    out_Color0 += vec4(out_Color0)*spec*0.5;
+    vec3 R = normalize(reflect(L, N));
+    float spec = max(pow(dot(R, V), 4.0) * 0.5 + 1.0, 0.75);
+    out_Color0 *= 0.75;
+    out_Color0 += vec4(out_Color0)*spec;
     
-    float NL = dot(N, L)*0.25+1.3;
+    float NL = dot(N, L)*0.25+0.5;
     
     out_Color0.xyz  *= NL;
    //     out_Color0.xyz = N;
@@ -304,7 +305,7 @@ void main() {
 	vec4 foamColor = vec4(1.0);
 	out_Color0 =(
 		    mix(water(fftN, fPosition), 
-	                refractTerrain(displacement, fftN, dH) * NL+(out_Color0)*spec*0.5, waterStrength) );
+	                refractTerrain(displacement, fftN, dH) * NL*0.5+(out_Color0)*spec*0.5, waterStrength) );
     }
     
     if(wireframe) {

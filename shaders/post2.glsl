@@ -4,7 +4,7 @@ uniform sampler2D tex;
 uniform sampler2D depthTex;
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
-uniform float focus = 0.99985; //lol
+uniform float focus = 0.99995; //lol
 #ifdef _VERTEX_
 in vec3 in_Position;
 in vec3 in_Normal;
@@ -32,7 +32,7 @@ out vec3 out_Color;
 void main()  {
   vec2 s = textureSize(tex, 0);
   //const float blurclamp = 5.0;  // max blur amount
-  const float bias = 30.0;
+  const float bias = 60.0;
   vec2 aspectcorrect = vec2(1.0, s.x / s.y);  
   float depth = texture(depthTex, pass_TexCoord.st).x;
   float factor = (pow(depth, 1/256.) - focus);

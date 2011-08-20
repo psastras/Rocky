@@ -1,3 +1,5 @@
+#define _WIN32_WINNT 0x0500
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -159,18 +161,7 @@ int main(int argc, char *argv[]) {
     if (hWnd == NULL) exit(1);
 
     hDC = GetDC(hWnd);
-    PIXELFORMATDESCRIPTOR pfd;
-    ZeroMemory( &pfd, sizeof( pfd ) );
-    pfd.nSize = sizeof( pfd );
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
-		  PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 24;
-    pfd.cDepthBits = 16;
-    pfd.iLayerType = PFD_MAIN_PLANE;
- //   int iFormat = ChoosePixelFormat( hDC, &pfd );
-   // SetPixelFormat( hDC, iFormat, &pfd );
+ 
     
     int attributes[] =
         {
@@ -190,7 +181,7 @@ int main(int argc, char *argv[]) {
     wglMakeCurrent(hDC, hRC);
     glewInit();
     HFONT font = CreateFont(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,ANSI_CHARSET,OUT_TT_ONLY_PRECIS,
-		      CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, FF_DONTCARE|DEFAULT_PITCH,
+		      CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, FF_DONTCARE|DEFAULT_PITCH,
 		      "Calibri");
     (HFONT)SelectObject(hDC, font);
     GLint base = glGenLists(256);
