@@ -154,16 +154,37 @@ int main(int argc, char *argv[]) {
     MSG   msg;				/* message */
 
     char *windowName = (char *)"OpenGL Terrain Demo [2011 - psastras]";
-    hWnd = CreateOpenGLWindow(windowName, 100, 100, properties.width, properties.height, PFD_TYPE_RGBA, 0);
+    hWnd = CreateOpenGLWindow(windowName, 100, 100, properties.width, properties.height, PFD_TYPE_RGBA  , PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
+			      PFD_DOUBLEBUFFER);
     if (hWnd == NULL) exit(1);
 
     hDC = GetDC(hWnd);
-    int attributes[] = {
-	    WGL_CONTEXT_MAJOR_VERSION_ARB, 3, // Set the MAJOR version of OpenGL to 3
-	    WGL_CONTEXT_MINOR_VERSION_ARB, 2, // Set the MINOR version of OpenGL to 2
-	    WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, // Set our OpenGL context to be forward compatible
-	    0
-    };
+    PIXELFORMATDESCRIPTOR pfd;
+    ZeroMemory( &pfd, sizeof( pfd ) );
+    pfd.nSize = sizeof( pfd );
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
+		  PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 24;
+    pfd.cDepthBits = 16;
+    pfd.iLayerType = PFD_MAIN_PLANE;
+ //   int iFormat = ChoosePixelFormat( hDC, &pfd );
+   // SetPixelFormat( hDC, iFormat, &pfd );
+    
+    int attributes[] =
+        {
+            WGL_SAMPLE_BUFFERS_ARB,  1,
+            WGL_COLOR_SAMPLES_NV,    0,
+            WGL_COVERAGE_SAMPLES_NV, 0,
+            WGL_DOUBLE_BUFFER_ARB,   1,
+            0, 0
+        };
+    int returnedPixelFormat = 0;
+    UINT numFormats = 0;
+    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+    wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");	
+    if(wglChoosePixelFormatARB) wglChoosePixelFormatARB(hDC, attributes,0 , 1, &returnedPixelFormat, &numFormats);
     hRC = wglCreateContext(hDC);//wglCreateContextAttribsARB(hDC, NULL, attributes); @todo: this causes a link error with my glew :S
 
     wglMakeCurrent(hDC, hRC);
@@ -239,7 +260,8 @@ int main(int argc, char *argv[]) {
 	}
 	*/
 	glFinish();
-
+	glFlush();
+	SwapBuffers(hDC);
 
 	if(pKeyController->isKeyDown(27)) { //esc
 	    break;
