@@ -39,6 +39,17 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     lod_ = 24.f;
     
    //182,790,400
+    reflectShader_ = new GLShaderProgram();
+    reflectShader_->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/reflect.glsl");
+    reflectShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/reflect.glsl");
+    reflectShader_->loadShaderFromSource(GL_GEOMETRY_SHADER, "shaders/reflect.glsl");
+    reflectShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/reflect.glsl");
+    reflectShader_->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/reflect.glsl");
+    reflectShader_->link();
+    
+    
+    
+    //reflectionFramebuffer_ = new GLFramebufferObject();
     
     this->generateTerrain(engine_->vsml());
 }
@@ -137,6 +148,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     perlinShader_->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/perlin.glsl");
     perlinShader_->link();
     
+
     // create framebuffer
    
 
@@ -293,11 +305,44 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 					   GL_RGB, IL_RGB, IL_FLOAT);
 }
 
+void GLPerlinTerrain::drawReflection(VSML *vsml, float time) {
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->bind();
+    GLenum outputTex[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}; 
+    glDrawBuffers(1, outputTex); 
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    reflectShader_->bind(vsml);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, heightmap_);
+    reflectShader_->setUniformValue("tex", 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_3D, normalmap_);
+    reflectShader_->setUniformValue("normalTex", 1);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["grass"].glTexId);
+    reflectShader_->setUniformValue("testTex", 3);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["sand"].glTexId);
+    reflectShader_->setUniformValue("sandTex", 4);
+    reflectShader_->setUniformValue("cameraPos", engine_->camera()->eye);
+    reflectShader_->setUniformValue("LOD", lod_-5);
+    reflectShader_->setUniformValue("lightPos", engine_->light());
+    reflectShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
+    reflectShader_->setUniformValue("D", terrain_->scale().x);
+    reflectShader_->setFragDataLocation("out_Color0", 0);
+    terrain_->draw(reflectShader_, instances_);
+    glBindTexture(GL_TEXTURE_3D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    reflectShader_->release();
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->release();
+}
+
 
 void GLPerlinTerrain::draw(VSML *vsml, float time) {    
     
     float3 *data = fftwater_->computeHeightfield(time);
     GLuint tex = fftwater_->heightfieldTexture();
+    
+    
     
     drawShader_->bind(vsml);
     glActiveTexture(GL_TEXTURE0);
@@ -317,6 +362,10 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, (*GLTextureLoader::instance()->textures())["sand"].glTexId);
     drawShader_->setUniformValue("sandTex", 4);
+    
+    glActiveTexture(GL_TEXTURE5);
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->bindsurface(0);
+    drawShader_->setUniformValue("reflTex", 5);
     
     if(engine_->renderMode() == WIREFRAME) drawShader_->setUniformValue("wireframe", true);
     else drawShader_->setUniformValue("wireframe", false);

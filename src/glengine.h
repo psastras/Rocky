@@ -17,12 +17,6 @@ struct WindowProperties {
     int width, height;
 };
 
-struct eqstr{
-  bool operator()(const char* s1, const char* s2) const {
-    return strcmp(s1,s2)==0;
-  }
-};
-
 
 enum RenderMode {
     WIREFRAME, FILL
@@ -61,7 +55,7 @@ protected:
     Camera camera_;
     float3 lightPos_;
     VSML *vsml_;
-    unordered_map<const char*, GLShaderProgram *, hash<const char*>, eqstr> shaderPrograms_;
+    unordered_map<const char*, GLShaderProgram *> shaderPrograms_;
     unordered_map<const char*, GLPrimitive *> primitives_;
 
     RenderMode renderMode_;

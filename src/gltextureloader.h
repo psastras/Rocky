@@ -5,6 +5,8 @@
 #include <IL/il.h>
 #include <unordered_map>
 
+#include "glframebufferobject.h"
+
 class GLTextureLoader {
 public:
     static GLTextureLoader *instance() {
@@ -24,6 +26,23 @@ protected:
     static GLTextureLoader *s_instance;
   
     std::unordered_map<const char*, Texture> textures_;    
+};
+
+
+class GLFramebufferManager {
+public:
+    static GLFramebufferManager *instance() {
+	if(!s_instance) s_instance = new GLFramebufferManager();
+	return s_instance;
+    }
+    
+    std::unordered_map<std::string, GLFramebufferObject *> *framebuffers() { return &framebuffers_; }
+    
+protected:
+    GLFramebufferManager() {}
+    static GLFramebufferManager *s_instance;
+  
+    std::unordered_map<std::string, GLFramebufferObject *> framebuffers_;    
 };
 
 #endif // GLTEXTURELOADER_H

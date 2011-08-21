@@ -86,8 +86,8 @@ float ridge(float h, float offset) {
 
 float ridgedmf(vec3 p, int noctaves, float lac, float g, float off) {
 	float sum = 0;
-	float freq = 1.0, amp = 0.5;
-	float prev = 1.0;
+	float freq = 0.5, amp = .75;
+	float prev = 0.25;
 	for(int i=0; i<noctaves; i++) {
 		float n = ridge(inoise(p*freq), off);
 		sum += n*amp*prev;

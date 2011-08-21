@@ -10,8 +10,7 @@
 #include <vsml.h>
 #include <IL/il.h>
 
-GLTextureLoader *GLTextureLoader::s_instance = 0;
-GLFramebufferObject *pMultisampleFramebuffer, *pFramebuffer0, *pFramebuffer1;
+
 GLPrimitive *pQuad;
 GLEngine::GLEngine(WindowProperties &properties) {
     //std::thread t(hello);
@@ -23,7 +22,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     height_ = properties.height;
 
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glViewport(0,0,width_,height_);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
@@ -48,15 +47,16 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.format = GL_RGBA16F;
     params.nColorAttachments = 2;
     params.nSamples = 8;//GLFramebufferObject::queryMaxSamples();
-    params.nCSamples = 16;
+    params.nCSamples = 8;
     params.type = GL_TEXTURE_2D;
-    pMultisampleFramebuffer = new GLFramebufferObject(params);
-
+    (*GLFramebufferManager::instance()->framebuffers())["m"] = new GLFramebufferObject(params);
+    
     params.hasDepth = true;
     params.nSamples = 0;
 
-    pFramebuffer0 = new GLFramebufferObject(params);
-    pFramebuffer1 = new GLFramebufferObject(params);
+    (*GLFramebufferManager::instance()->framebuffers())["0"] = new GLFramebufferObject(params);
+    (*GLFramebufferManager::instance()->framebuffers())["1"] = new GLFramebufferObject(params);
+    params.nColorAttachments = 1;
     primitives_["quad1"] = new GLQuad(float3(1, 1, 0),
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
@@ -100,6 +100,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["solid"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/solid.glsl");
     shaderPrograms_["solid"]->link();
 
+
     shaderPrograms_["icosohedron"] = new GLShaderProgram();
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_VERTEX_SHADER, "shaders/icosohedron.glsl");
     shaderPrograms_["icosohedron"]->loadShaderFromSource(GL_FRAGMENT_SHADER, "shaders/icosohedron.glsl");
@@ -108,7 +109,7 @@ GLEngine::GLEngine(WindowProperties &properties) {
     shaderPrograms_["icosohedron"]->link();
         
     GLPerlinTerrainParams paramsT;
-    paramsT.resolution = 256;
+    paramsT.resolution = 128;
     paramsT.gain = 0.61;
     paramsT.grid = float2(15,15);
     paramsT.lacunarity = 1.7;
@@ -131,9 +132,6 @@ GLEngine::~GLEngine() {
 	 delete (*itr).second;
 
     delete terrain_;
-    delete pMultisampleFramebuffer;
-    delete pFramebuffer0;
-    delete pFramebuffer1;
 }
 
 void GLEngine::resize(int w, int h) {
@@ -143,10 +141,9 @@ void GLEngine::resize(int w, int h) {
 			float3(width_ * 0.5, height_ * 0.5, 0),
 			float3(width_, height_, 1));
  
-    pMultisampleFramebuffer->resize(width_, height_);
-    
-    pFramebuffer0->resize(width_, height_);
-    pFramebuffer1->resize(width_, height_);
+    (*GLFramebufferManager::instance()->framebuffers())["m"]->resize(width_, height_);
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->resize(width_, height_);
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->resize(width_, height_);
     camera_.orthogonal_camera(width_, height_);
     maxMipLevel_ = (log10((float)max(width_, height_)) / log10(2.f));
    
@@ -162,55 +159,56 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     memcpy(&currentViewMatrices[0][0], vsml_->get(VSML::MODELVIEW), sizeof(float)*32);
     
     // draw
-    
+    glEnable(GL_DEPTH_TEST);
     GLenum outputTex[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}; 
-    pMultisampleFramebuffer->bind();
+    terrain_->drawReflection(vsml_, time);
+    
+    (*GLFramebufferManager::instance()->framebuffers())["m"]->bind();
     glClear(GL_DEPTH_BUFFER_BIT);
     shaderPrograms_["icosohedron"]->bind(vsml_);
     shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color0", 0);
     shaderPrograms_["icosohedron"]->setFragDataLocation("out_Color1", 1);
     shaderPrograms_["icosohedron"]->setUniformValue("lightPos", lightPos_);
-    pMultisampleFramebuffer->checkStatus();
     glDrawBuffers(2, outputTex); 
     primitives_["sphere0"]->draw(shaderPrograms_["icosohedron"]);
     shaderPrograms_["icosohedron"]->release();
-    glEnable(GL_DEPTH_TEST);
+    
     terrain_->draw(vsml_, time);
     glDrawBuffers(1, outputTex); 
-    pMultisampleFramebuffer->release();
-    pMultisampleFramebuffer->blit(*pFramebuffer0);
-    
+    (*GLFramebufferManager::instance()->framebuffers())["m"]->release();
+    (*GLFramebufferManager::instance()->framebuffers())["m"]->blit(*(*GLFramebufferManager::instance()->framebuffers())["0"]);
+  
     // start post process
     
     glDisable(GL_DEPTH_TEST);
     this->vsmlOrtho();
     
-    
+     // return;
     // god rays + log luminance
     
     shaderPrograms_["post0"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
-    pFramebuffer0->bindsurface(0);
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->bindsurface(0);
     shaderPrograms_["post0"]->setUniformValue("tex", 0);
     glActiveTexture(GL_TEXTURE1);
-    pFramebuffer0->bindsurface(1);
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->bindsurface(1);
     shaderPrograms_["post0"]->setUniformValue("posTex", 1);
-    pFramebuffer1->bind();
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->bind();
     shaderPrograms_["post0"]->setUniformValue("modelviewMatrixCurr", currentViewMatrices[0]);
     shaderPrograms_["post0"]->setUniformValue("projMatrixCurr", currentViewMatrices[1]);
     shaderPrograms_["post0"]->setUniformValue("lightPos", lightPos_);
     primitives_["quad1"]->draw(shaderPrograms_["post0"]);
-    pFramebuffer0->unbindsurface();
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->unbindsurface();
     shaderPrograms_["post0"]->release();
-    pFramebuffer1->release();
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->release();
     
     // tone map
     
     shaderPrograms_["post1"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
-    pFramebuffer0->bind();
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->bind();
     glDrawBuffers(1, outputTex); 
-    pFramebuffer1->bindsurface(0);
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->bindsurface(0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -218,22 +216,22 @@ void GLEngine::draw(float time, float dt, const KeyboardController *keyControlle
     shaderPrograms_["post1"]->setUniformValue("maxMipLevel", (float)maxMipLevel_);
     primitives_["quad1"]->draw(shaderPrograms_["post1"]);
     shaderPrograms_["post1"]->release();
-    pFramebuffer1->unbindsurface();
-    pFramebuffer0->release();
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->unbindsurface();
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->release();
     
     // dof
     
    // pFramebuffer1->bind();
     shaderPrograms_["post2"]->bind(vsml_);
     glActiveTexture(GL_TEXTURE0);
-    pFramebuffer0->bindsurface(0);
+    (*GLFramebufferManager::instance()->framebuffers())["0"]->bindsurface(0);
     shaderPrograms_["post2"]->setUniformValue("tex", 0);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, pFramebuffer0->depth());
+    glBindTexture(GL_TEXTURE_2D, (*GLFramebufferManager::instance()->framebuffers())["0"]->depth());
     shaderPrograms_["post2"]->setUniformValue("depthTex", 1);
     primitives_["quad1"]->draw(shaderPrograms_["post2"]);
     shaderPrograms_["post2"]->release();
-    pFramebuffer1->unbindsurface();
+    (*GLFramebufferManager::instance()->framebuffers())["1"]->unbindsurface();
    // pFramebuffer1->release();
   
     /*

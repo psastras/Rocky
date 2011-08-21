@@ -4,6 +4,7 @@ GLTextureLoader::GLTextureLoader() {
     ilInit();
 }
 
+
 void GLTextureLoader::loadImage(const char *filename, const char *name, GLenum internalFormat,
 				ILenum format, ILenum type) {
     ILuint ilId;
@@ -36,3 +37,4 @@ void GLTextureLoader::loadImage(const char *filename, const char *name, GLenum i
     
     textures_[name].glTexId = glId;
 }
+

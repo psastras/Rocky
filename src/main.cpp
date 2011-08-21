@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include "glcommon.h"
 #include "glengine.h"
+#include "gltextureloader.h"
 #include <string.h>
 #include <sstream>
 #include <iostream>
@@ -24,7 +25,8 @@
     #include <GL/glx.h>
     #include <sys/resource.h>
 #endif
-
+GLTextureLoader *GLTextureLoader::s_instance = 0;
+GLFramebufferManager *GLFramebufferManager::s_instance = 0;
 GLEngine *pEngine = 0;
 KeyboardController *pKeyController = new KeyboardController();
 #ifdef _WIN32

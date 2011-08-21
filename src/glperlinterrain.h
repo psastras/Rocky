@@ -30,7 +30,7 @@ public:
     GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine);
     ~GLPerlinTerrain();
     void draw (VSML *vsml, float time);
-    
+    void drawReflection(VSML *vsml, float time);
     GLFramebufferObject *framebuffer() const { return framebuffers_[0]; } //@todo: remove this
     float lod() { return lod_; }
     void setLod(float lod) {  lod_ = lod; }
@@ -40,8 +40,8 @@ protected:
     int instances_;
     GLuint heightmap_, normalmap_;
     GLPerlinTerrainParams params_;
-    GLShaderProgram *drawShader_, *perlinShader_, *lightingShader_;
-    GLFramebufferObject **framebuffers_;
+    GLShaderProgram *drawShader_, *perlinShader_, *lightingShader_, *reflectShader_;
+    GLFramebufferObject **framebuffers_, *reflectionFramebuffer_;
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
     GLuint vboPosID_, vaoID_;
