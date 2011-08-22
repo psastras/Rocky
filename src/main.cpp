@@ -1,4 +1,4 @@
-#define _WIN32_WINNT 0x0500
+#define _WIN32_WINNT 0x0500 // -_-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,14 +151,14 @@ double GetCounter() {
 }
 #define GLEW_STATIC
 int main(int argc, char *argv[]) {
-    WindowProperties properties = {1280, 720};
+    WindowProperties properties = {1280, 720}; //derp
     HDC hDC;				/* device context */
     HGLRC hRC;				/* opengl context */
     HWND  hWnd;				/* window */
     MSG   msg;				/* message */
 
     char *windowName = (char *)"OpenGL Terrain Demo [2011 - psastras]";
-    hWnd = CreateOpenGLWindow(windowName, 100, 100, properties.width, properties.height, PFD_TYPE_RGBA  , PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
+    hWnd = CreateOpenGLWindow(windowName, 100, 100, properties.width, properties.height, PFD_TYPE_RGBA, PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
 			      PFD_DOUBLEBUFFER);
     if (hWnd == NULL) exit(1);
 
@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
     PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
     wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");	
     if(wglChoosePixelFormatARB) wglChoosePixelFormatARB(hDC, attributes,0 , 1, &returnedPixelFormat, &numFormats);
-    hRC = wglCreateContext(hDC);//wglCreateContextAttribsARB(hDC, NULL, attributes); @todo: this causes a link error with my glew :S
+    hRC = wglCreateContext(hDC);//wglCreateContextAttribsARB(hDC, NULL, attributes); @todo: this causes a link error with my glew :S - whatever well just make the window with settings which are hopefully supported
 
     wglMakeCurrent(hDC, hRC);
     glewInit();
@@ -200,6 +200,7 @@ int main(int argc, char *argv[]) {
     glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]); // Get back the OpenGL MAJOR version we are using
 
     while (1) {
+	StartCounter();
 	while(PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE)) {
 	    if(GetMessage(&msg, hWnd, 0, 0)) {
 		TranslateMessage(&msg);
@@ -221,13 +222,13 @@ int main(int argc, char *argv[]) {
 	SetCursorPos(pt.x, pt.y);
 	pEngine->mouseMove(lpt.x - pt.x, pt.y - lpt.y, dt / 1000.f);
 
-	StartCounter();
+	
 	pEngine->draw(st.wMinute * 60 + st.wSecond + st.wMilliseconds / 1000.f,
 		      dt / 1000.f, pKeyController);
-	dt = GetCounter();
 	
-	// text drawing
-	{
+	
+	// text drawing 
+	/*{
 	    std::stringstream ss;
 	    ss << "OpenGL " << glVersion[0] << "." << glVersion[1];
 	    const char *s = ss.str().c_str();
@@ -237,7 +238,7 @@ int main(int argc, char *argv[]) {
 	    glCallLists(ss.str().length(), GL_UNSIGNED_BYTE, s);
 	    glListBase(0);
 	    glPopAttrib();
-	}
+	}*/
 /*	
 	{
 	    std::stringstream ss;
@@ -261,6 +262,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	pKeyController->swapBuffers();
+	dt = GetCounter();
     }
 quit:
     delete pEngine;
@@ -406,7 +408,7 @@ int main(int argc, char *argv[]) {
 
 	    pEngine->draw(ts.tv_sec, dt, keycontroller);
 
-	    clock_gettime(CLOCK_REALTIME, &ts);
+/*	    clock_gettime(CLOCK_REALTIME, &ts);
 	    std::stringstream ss;
 	    dt = ((ts.tv_nsec - time) * 1.0e-9);
 	    if(dt < 0) dt = 0.01; //@todo this is cause were overflowing max long i think?
@@ -418,10 +420,10 @@ int main(int argc, char *argv[]) {
 	    glCallLists(strlen(s), GL_BYTE, s);
 	    glPopAttrib();
 	    glListBase(0);
+*/
 
-	    glXSwapBuffers(dpy, win);
 	    glFinish();
-
+	    glXSwapBuffers(dpy, win);
 	    keycontroller->swapBuffers();
 
     }

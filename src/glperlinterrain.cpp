@@ -35,8 +35,8 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     fftparams.N = 256;
     fftparams.chop = 2.0;
     fftwater_ = new GLFFTWater(fftparams);
-    
-    lod_ = 24.f;
+    fftwater_->startHeightfieldComputeThread(0.f);
+    lod_ = 20.f;
     
    //182,790,400
     reflectShader_ = new GLShaderProgram();
@@ -47,8 +47,9 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     reflectShader_->loadShaderFromSource(GL_TESS_CONTROL_SHADER, "shaders/reflect.glsl");
     reflectShader_->link();
     
-    
-    
+    drawShader_->setFragDataLocation("out_Color0", 0);
+    drawShader_->setFragDataLocation("out_Color1", 1);
+    reflectShader_->setFragDataLocation("out_Color0", 0);
     //reflectionFramebuffer_ = new GLFramebufferObject();
     
     this->generateTerrain(engine_->vsml());
@@ -59,16 +60,18 @@ GLPerlinTerrain::~GLPerlinTerrain() {
     delete quad_;
     delete drawShader_;
     delete fftwater_;
-    
+    delete reflectShader_;
     glDeleteTextures(1, &normalmap_);
     glDeleteTextures(1, &heightmap_);
+    delete[] framebuffers_;
+ 
 }
 
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
   
     // there be dragons ahead
     
-    int maxAttachments = GLFramebufferObject::queryMaxAttachments();
+    int maxAttachments = 8;//GLFramebufferObject::queryMaxAttachments(); /* your platform better support 8 attachmenets or too bad */
     instances_ = params_.grid.x * params_.grid.y;
     int noBuffers = (int)ceilf(instances_ / (float)maxAttachments);
     framebuffers_ = new GLFramebufferObject*[noBuffers];
@@ -149,7 +152,6 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     perlinShader_->link();
     
 
-    // create framebuffer
    
 
     
@@ -159,12 +161,14 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 				   float3(params.width, params.height, 1));
     
     // draw
-    
+    float2 random = params_.random;
     float2 *offsets = new float2[instances_ + (instances_ % 8)];
     for(int x=0, i=0; x<params_.grid.x; x++) {
 	for(int y=0; y<params_.grid.y; y++, i++) {
 	    offsets[i] = float2(x-1.0/params_.resolution*x,
-				y-1.0/params_.resolution*y);
+				y-1.0/params_.resolution*y) ;
+	    offsets[i].x += random.x;
+	    offsets[i].y += random.y;
 	}
     }
     
@@ -282,13 +286,13 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	lightingShader_->release();
 	glBindTexture(GL_TEXTURE_3D, 0);
 	framebuffers_[i]->release();
-    
+	delete framebuffers_[i];
     }
     
     
     
 //    glDrawBuffers(1, outputTex); 
-     
+   
     
     
     glViewport(0, 0, width, height); // restore the viewport
@@ -296,6 +300,7 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
     glDeleteTextures(2, &textures[0]);
     delete quad;
     delete[] offsets;
+    delete lightingShader_;
     //delete[] layers;
 
     
@@ -328,20 +333,18 @@ void GLPerlinTerrain::drawReflection(VSML *vsml, float time) {
     reflectShader_->setUniformValue("lightPos", engine_->light());
     reflectShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     reflectShader_->setUniformValue("D", terrain_->scale().x);
-    reflectShader_->setFragDataLocation("out_Color0", 0);
+
     terrain_->draw(reflectShader_, instances_);
-    glBindTexture(GL_TEXTURE_3D, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    reflectShader_->release();
-    (*GLFramebufferManager::instance()->framebuffers())["1"]->release();
+
 }
 
 
 void GLPerlinTerrain::draw(VSML *vsml, float time) {    
-    
-    float3 *data = fftwater_->computeHeightfield(time);
+   
+   fftwater_->waitForHeightfieldComputeThread();
+     //fftwater_->computeHeightfield(time);
     GLuint tex = fftwater_->heightfieldTexture();
-    
+   fftwater_->startHeightfieldComputeThread(time);
     
     
     drawShader_->bind(vsml);
@@ -367,17 +370,12 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     (*GLFramebufferManager::instance()->framebuffers())["1"]->bindsurface(0);
     drawShader_->setUniformValue("reflTex", 5);
     
-    if(engine_->renderMode() == WIREFRAME) drawShader_->setUniformValue("wireframe", true);
-    else drawShader_->setUniformValue("wireframe", false);
     drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
     drawShader_->setUniformValue("LOD", lod_);
     drawShader_->setUniformValue("lightPos", engine_->light());
     drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));
     drawShader_->setUniformValue("D", terrain_->scale().x);
-    drawShader_->setFragDataLocation("out_Color0", 0);
-    drawShader_->setFragDataLocation("out_Color1", 1);
+
     terrain_->draw(drawShader_, instances_);
-    glBindTexture(GL_TEXTURE_3D, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    drawShader_->release();
+
 }

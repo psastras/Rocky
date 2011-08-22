@@ -2,18 +2,18 @@
 #include "glcommon.h"
 #include "common.h"
 GLFramebufferObject::GLFramebufferObject(GLFramebufferObjectParams params) {
-    
+    color_ = 0;
     params_ = params;
     // @todo: should check the parameters to maker sure they make sense
     // instead were just going to check for a glError, if one of the parameters
     // is not correct it will probably result in a gl error
+    
     this->allocFramebuffer(params_);
     GLERROR("creating framebuffer object");
 
 }
 
 GLFramebufferObject::~GLFramebufferObject() {
-
     this->bind();
     if(params_.nSamples > 1) {
 	glDeleteRenderbuffersEXT(params_.nColorAttachments, &color_[0]);
@@ -22,10 +22,11 @@ GLFramebufferObject::~GLFramebufferObject() {
 	glDeleteTextures(params_.nColorAttachments, &color_[0]);
 	glDeleteTextures(1, &depth_);
     }
-    glDeleteFramebuffersEXT(1, &id_);
+  
     this->release();
-
-    delete[] color_;
+    glDeleteFramebuffersEXT(1, &id_);
+    
+    if(color_) delete[] color_;
 
 }
 
@@ -37,33 +38,11 @@ void GLFramebufferObject::bindsurface(int idx) {
 	glBindTexture(GL_TEXTURE_3D, color_[0]);
     }
 }
-/* //now get multisampled configs
-	    if ( coverageSampleConfigs > 0) {
-                //CSAA provides a list of all supported AA modes for quick enumeration
-                for (int kk = 0; kk < coverageSampleConfigs; kk++) {
-                    char msText[256];
-                    config.depthSamples = coverageConfigs[kk*2+1];
-                    config.coverageSamples = coverageConfigs[kk*2];
 
-                    if ( config.coverageSamples == config.depthSamples ) {
-                        // when coverage and color/depth samples are the same, it is just normal MSAA
-                        sprintf( msText, " - %d MSAA", config.depthSamples);
-                    }
-                    else {
-                        // when coverage is sampled more finely, this is a CSAA mode
-                        sprintf( msText, " - %d/%d CSAA", config.coverageSamples, config.depthSamples);
-                    }
-                    config.name = root + msText;
-            
-                    if (createFBO( config, data)) {
-                        glutAddMenuEntry( config.name.c_str(), (int)validConfigs.size());
-                        validConfigs.push_back( config);
-                    }
-                    destroyFBO( data);
-                }*/
 // @todo: add stencil buffer support and error handling (esp. for nonsupported formats)
 void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
-    glGenFramebuffersEXT(1, &id_);
+    
+    glGenFramebuffers(1, &id_);
     
     params.nCSamples = params.nSamples * 2; //TODO: MAKE THIS AN OPTION;
     
@@ -77,7 +56,7 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
 	glGetIntegerv( GL_MULTISAMPLE_COVERAGE_MODES_NV, coverageConfigs);
     }
     
-    
+     
     
     if(!params.nColorAttachments) return;
     this->bind();
@@ -190,13 +169,13 @@ void GLFramebufferObject::blit(GLFramebufferObject &dst) {
 	glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
         glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, dst.width(), dst.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
-
+   
     if(this->params().hasDepth && dst.params().hasDepth) {
+	
 	glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, this->id());
-	glReadBuffer(GL_DEPTH_ATTACHMENT_EXT);
 	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, dst.id());
-	glDrawBuffer(GL_DEPTH_ATTACHMENT_EXT);
         glBlitFramebufferEXT(0, 0, this->width(), this->height(), 0, 0, dst.width(), dst.height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	
     }
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

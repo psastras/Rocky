@@ -3,6 +3,7 @@
 
 #include "glcommon.h"
 #include <fftw3.h>
+#include <pthread.h>
 
 struct GLFFTWaterParams{
 	int N; //fourier grid size;
@@ -18,13 +19,14 @@ class GLFFTWater
 public:
     GLFFTWater(GLFFTWaterParams &params);
     ~GLFFTWater();
-    float3 *computeHeightfield(float t);
+    void computeHeightfield(float t);
+    void startHeightfieldComputeThread(float t);
+    void waitForHeightfieldComputeThread();
     GLuint heightfieldTexture();
     const GLFFTWaterParams& params() { return m_params; }
 
 protected:
     float phillips(float kx, float ky, float& w);
-
     GLFFTWaterParams m_params;
     fftwf_complex *m_htilde0;
     fftwf_plan m_fftplan;
@@ -33,6 +35,7 @@ protected:
     float *m_kz, *m_kx; //precomputed kz/sqrt(kx^2+kz^2)
     float3 *m_heightmap;
     GLuint m_texId;
+    pthread_t computeThread_;
 };
 
 #endif // GLFFTWATER_H

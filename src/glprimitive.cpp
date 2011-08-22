@@ -2,7 +2,7 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-GLPrimitive::GLPrimitive(float3 &tess, float3 &translate, float3 &scale) : vertexId_(0), indexId_(0), arrayId_(0) {
+GLPrimitive::GLPrimitive(float3 &tess, float3 &translate, float3 &scale) : vertexId_(0), indexId_(0) {
     translate_ = translate;
     scale_ = scale;
 }
@@ -10,7 +10,6 @@ GLPrimitive::GLPrimitive(float3 &tess, float3 &translate, float3 &scale) : verte
 GLPrimitive::~GLPrimitive() {
     if(vertexId_) glDeleteBuffers(1, &vertexId_);
     if(indexId_) glDeleteBuffers(1, &indexId_);
-    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
 }
 
 void GLPrimitive::draw(GLShaderProgram *program, int instances) {
@@ -61,7 +60,7 @@ void GLPrimitive::draw(GLShaderProgram *program) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     if(type_ == GL_PATCHES) glPatchParameteri(GL_PATCH_VERTICES, typeCount_);
-
+    
     glDrawElements(type_, idxCount_, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -97,7 +96,6 @@ void GLQuad::tesselate(float3 tess, float3 translate, float3 scale) {
 
     if(vertexId_) glDeleteBuffers(1, &vertexId_);
     if(indexId_) glDeleteBuffers(1, &indexId_);
-    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
 
 
     type_ = GL_QUADS;
@@ -105,9 +103,6 @@ void GLQuad::tesselate(float3 tess, float3 translate, float3 scale) {
     float3 delta = scale / tess;
     float3 tdelta = 1.0 / tess;
     delta.z = 0;
-
-    glGenVertexArrays(1, &arrayId_);
-    glBindVertexArray(arrayId_);
 
     GLVertex *pVertex = new GLVertex[(int)((tess.x + 1) * (tess.y + 1))];
     for(int y=0, i=0; y<=tess.y; y++) {
@@ -136,7 +131,6 @@ void GLQuad::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, &pIndices[0], GL_STATIC_DRAW);
 
-    glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
     vOffset_ = 0;
@@ -152,10 +146,7 @@ void GLPlane::tesselate(float3 tess, float3 translate, float3 scale) {
 
     if(vertexId_) glDeleteBuffers(1, &vertexId_);
     if(indexId_) glDeleteBuffers(1, &indexId_);
-    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
 
-    glGenVertexArrays(1, &arrayId_);
-    glBindVertexArray(arrayId_);
 
     type_ = GL_TRIANGLES;
     idxCount_ = 6 * tess.x * tess.z;
@@ -192,7 +183,6 @@ void GLPlane::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, &pIndices[0], GL_STATIC_DRAW);
 
-    glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
     vOffset_ = 0;
@@ -208,7 +198,6 @@ void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
     
     if(vertexId_) glDeleteBuffers(1, &vertexId_);
     if(indexId_) glDeleteBuffers(1, &indexId_);
-    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
     
     type_ = GL_PATCHES;	
     typeCount_ = 3;
@@ -239,8 +228,6 @@ void GLIcosohedron::tesselate(float3 tess, float3 translate, float3 scale) {
 
     idxCount_ = sizeof(pIndices) / sizeof(pIndices[0]);
 
-    glGenVertexArrays(1, &arrayId_);
-    glBindVertexArray(arrayId_);
     glGenBuffers(1, &vertexId_);
     glBindBuffer(GL_ARRAY_BUFFER, vertexId_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertex)*12, pVertex, GL_STATIC_DRAW);
@@ -261,11 +248,7 @@ GLRect::GLRect(float3 tess, float3 translate, float3 scale) : GLPrimitive(tess, 
 void GLRect::tesselate(float3 tess, float3 translate, float3 scale) {
     if(vertexId_) glDeleteBuffers(1, &vertexId_);
     if(indexId_) glDeleteBuffers(1, &indexId_);
-    if(arrayId_) glDeleteVertexArrays(1, &arrayId_);
     
-    glGenVertexArrays(1, &arrayId_);
-    glBindVertexArray(arrayId_);
-
     type_ = GL_PATCHES;
     typeCount_ = 4;
     idxCount_ = 4 * tess.x * tess.z;
@@ -298,7 +281,6 @@ void GLRect::tesselate(float3 tess, float3 translate, float3 scale) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexId_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short)*idxCount_, &pIndices[0], GL_STATIC_DRAW);
 
-    glBindVertexArray(0);
     delete[] pVertex, delete[] pIndices;
 
     vOffset_ = 0;

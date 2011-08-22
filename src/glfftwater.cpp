@@ -3,6 +3,7 @@
 #include <tr1/random>
 #include <malloc.h>
 #include <math.h>
+#include <pthread.h>
 GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 
 #ifdef _WIN32
@@ -56,7 +57,7 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
     if(!fftwf_init_threads()) {
 	cerr << "Error initializing multithreaded fft."  << endl;
     } else {
-	fftwf_plan_with_nthreads(4);
+	fftwf_plan_with_nthreads(2);
     }
   
     m_fftplan = fftwf_plan_dft_c2r_2d(m_params.N, m_params.N, (fftwf_complex *)m_h, m_h, FFTW_ESTIMATE);
@@ -76,6 +77,7 @@ GLFFTWater::~GLFFTWater() {
     __mingw_aligned_free(m_dx);
     __mingw_aligned_free(m_dz);
     delete[] m_kz;
+    delete[] m_heightmap;
     delete[] m_kx; 
 }
 
@@ -98,7 +100,32 @@ GLuint GLFFTWater::heightfieldTexture() {
     return m_texId;
 }
 
-float3 *GLFFTWater::computeHeightfield(float t) {
+
+
+struct ThreadInfo {
+    GLFFTWater *water;
+    float time;
+} info;
+
+void *TaskCode(void *argument) {
+   GLFFTWater *water = ((ThreadInfo *)argument)->water;
+  
+   water->computeHeightfield(((ThreadInfo *)argument)->time);
+}
+
+
+void GLFFTWater::startHeightfieldComputeThread(float t) {
+    info.time = t;
+    info.water = this;
+    pthread_create(&computeThread_, 0, TaskCode, (void *)&info);
+}
+
+void GLFFTWater::waitForHeightfieldComputeThread() {
+    pthread_join(computeThread_, 0);
+    pthread_detach(computeThread_);
+}
+
+void GLFFTWater::computeHeightfield(float t) {
 	const int hN = m_params.N / 2;
 	const int hNp2 = m_params.N + 2;
 
@@ -126,7 +153,7 @@ float3 *GLFFTWater::computeHeightfield(float t) {
 		    m_dz[x*2+1+hNp2*y] =  ht_r*kkz;
 	    }
 	}
-
+	
 	m_dx[m_params.N + hNp2*hN] = 0.f;
 	m_dz[m_params.N + hNp2*hN] = 0.f;
 	m_dx[m_params.N + hNp2*hN+1] = 0.f;
@@ -151,5 +178,4 @@ float3 *GLFFTWater::computeHeightfield(float t) {
 			}
 		}
 	}
-	return m_heightmap;
 }

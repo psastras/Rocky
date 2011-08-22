@@ -20,9 +20,6 @@ void GLTextureLoader::loadImage(const char *filename, const char *name, GLenum i
     }
     ilConvertImage(format, type);
     ILubyte *data = ilGetData();
-
-    std::cout <<  (int)ilGetInteger(IL_IMAGE_WIDTH) << std::endl;
-    
     glBindTexture(GL_TEXTURE_2D, glId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

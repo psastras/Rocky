@@ -1,3 +1,5 @@
+//cause drawing a sphere normally is too easy
+
 #version 400 core
 
 uniform mat4 modelviewMatrix;
@@ -24,10 +26,6 @@ out vec3 tcPosition[];
 void main() {
     tcPosition[gl_InvocationID] = vPosition[gl_InvocationID];
     if (gl_InvocationID == 0) {
-	/*vec4 p0 =  projMatrix * modelviewMatrix * vec4(tcPosition[0], 1);
-	vec4 p1 =  projMatrix * modelviewMatrix * vec4(tcPosition[1], 1);
-	vec4 p2 =  projMatrix * modelviewMatrix * vec4(tcPosition[2], 1);
-	float a = int((abs(p0.x*(p1.y-p2.y)+p1.x*(p2.y-p0.y)+p2.x*(p0.y-p1.y))) * 0.5);*/
 	gl_TessLevelInner[0] = 16;
 	gl_TessLevelOuter[0] = 16;
 	gl_TessLevelOuter[1] = 16;
@@ -56,8 +54,8 @@ in vec3 tePosition;
 out vec4 out_Color0;
 out vec4 out_Color1;
 vec4 atmosphere(vec3 pos) {
-    vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000)*1.5;
-    vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000)*1.5;
+    vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000)*1.25;
+    vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000)*1.25;
     vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * 0.2; //sun color
     float d = length(pos - lightPos)*100.0;
     if(pos.y >= 0.0)

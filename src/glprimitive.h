@@ -18,7 +18,6 @@ class GLPrimitive {
       void draw(GLShaderProgram *program);
       void draw(GLShaderProgram *program, int instances);
     
-      GLuint arrayID() { return arrayId_; }
       GLuint vertexID() { return vertexId_; }
       GLuint indexID() { return indexId_; }
       
@@ -27,7 +26,7 @@ class GLPrimitive {
   protected:
       GLPrimitive(float3 &tess, float3 &translate, float3 &scale);
 
-      GLuint vertexId_, indexId_, arrayId_;
+      GLuint vertexId_, indexId_;
       GLenum type_;
       GLuint idxCount_;
       GLuint typeCount_;

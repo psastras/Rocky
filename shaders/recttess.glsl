@@ -10,7 +10,6 @@ uniform sampler2D sandTex;
 uniform sampler2D reflTex;
 uniform vec2 grid;
 uniform float D;
-uniform bool wireframe = false;
 uniform vec3 lightPos;
 uniform vec3 cameraPos;
 uniform float waterLevel = 0.0;
@@ -296,7 +295,7 @@ void main() {
     //out_Color0 *= 0.75;
     out_Color0 += vec4(out_Color0)*spec;
     
-    float NL = dot(N, L)*0.35+0.5;
+    float NL = dot(N, L)*0.45+0.5;
     
     out_Color0.xyz  *= NL;
    //     out_Color0.xyz = N;
@@ -319,14 +318,14 @@ void main() {
 			
     }
     
-    if(wireframe) {
-	float d1 = min(min(fTriDistance.x, fTriDistance.y), fTriDistance.z);
-	d1 = 1 - amplify(d1, 50, -1.0);
-	out_Color0 = mix(out_Color0, wireframeColor, d1);
-    }
+    
     out_Color1 = fPosition;
+    
     out_Color0.w = 0.0;
- 
+
+    float d1 = min(min(fTriDistance.x, fTriDistance.y), fTriDistance.z);
+    d1 = 1 - amplify(d1, 50, -1.0);
+    out_Color1.w = d1;
 }
 
 #endif

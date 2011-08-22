@@ -18,6 +18,7 @@ struct GLPerlinTerrainParams {
     float3 tess;
     float2 scale;
     float2 grid;
+    float2 random;
     
     // noise settings
     int resolution, octaves;
@@ -34,6 +35,7 @@ public:
     GLFramebufferObject *framebuffer() const { return framebuffers_[0]; } //@todo: remove this
     float lod() { return lod_; }
     void setLod(float lod) {  lod_ = lod; }
+    GLPerlinTerrainParams params() { return params_; }
 protected:
     
     void generateTerrain(VSML *vsml);
@@ -41,7 +43,7 @@ protected:
     GLuint heightmap_, normalmap_;
     GLPerlinTerrainParams params_;
     GLShaderProgram *drawShader_, *perlinShader_, *lightingShader_, *reflectShader_;
-    GLFramebufferObject **framebuffers_, *reflectionFramebuffer_;
+    GLFramebufferObject **framebuffers_;
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
     GLuint vboPosID_, vaoID_;
