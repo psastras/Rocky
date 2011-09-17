@@ -1,6 +1,7 @@
 #include "glperlinterrain.h"
 #include "glengine.h"
 #include "common.h"
+#include "glskydome.h"
 #include "glcommon.h"
 #include "glprimitive.h"
 #include "glframebufferobject.h"
@@ -18,9 +19,9 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     drawShader_->loadShaderFromSource(GL_TESS_EVALUATION_SHADER, "shaders/recttess.glsl");
     drawShader_->link();
     
-    terrain_ = new GLRect(float3(10, 0, 10),
+    terrain_ = new GLRect(float3(7, 0, 7),
 			 float3(0, 0, 0),
-			 float3(100, 1, 100));
+			 float3(150, 1, 150));
     
     //quad used to render perlin noise to
     quad_ =  new GLQuad(float3(1, 1, 0),
@@ -28,15 +29,15 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
 			   float3(params_.resolution, params_.resolution, 1));
     
     GLFFTWaterParams fftparams;
-    fftparams.A = 0.0000005f;
+    fftparams.A = 0.000001f;
     fftparams.V = 10.0f;
     fftparams.w = 200 * 3.14159f / 180.0f;
     fftparams.L = 200.0;
-    fftparams.N = 256;
+    fftparams.N = 128;
     fftparams.chop = 2.0;
     fftwater_ = new GLFFTWater(fftparams);
     fftwater_->startHeightfieldComputeThread(0.f);
-    lod_ = 20.f;
+    lod_ = 15.f;
     
    //182,790,400
     reflectShader_ = new GLShaderProgram();
@@ -64,7 +65,7 @@ GLPerlinTerrain::~GLPerlinTerrain() {
     glDeleteTextures(1, &normalmap_);
     glDeleteTextures(1, &heightmap_);
     delete[] framebuffers_;
- 
+    delete[] heightmapData_;
 }
 
 void GLPerlinTerrain::generateTerrain(VSML *vsml) {
@@ -226,6 +227,12 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 	framebuffers_[i]->release();
     }
     
+    //download heightmap
+    heightmapData_ = new float[(int)(params_.resolution * params_.resolution * 
+			params_.grid.x * params_.grid.y)];
+    
+    glBindTexture(GL_TEXTURE_3D, heightmap_);
+    glGetTexImage(GL_TEXTURE_3D, 0, GL_R16F, GL_FLOAT, &heightmapData_[0]);
     
     
     //create normal map
@@ -305,9 +312,9 @@ void GLPerlinTerrain::generateTerrain(VSML *vsml) {
 
     
     GLTextureLoader::instance()->loadImage("textures/hello.bmp", "grass",
-					   GL_RGB, IL_RGB, IL_FLOAT);
+					   GL_R11F_G11F_B10F, IL_RGB, IL_FLOAT);
     GLTextureLoader::instance()->loadImage("textures/sand.bmp", "sand",
-					   GL_RGB, IL_RGB, IL_FLOAT);
+					   GL_R11F_G11F_B10F, IL_RGB, IL_FLOAT);
 }
 
 void GLPerlinTerrain::drawReflection(VSML *vsml, float time) {
@@ -335,11 +342,9 @@ void GLPerlinTerrain::drawReflection(VSML *vsml, float time) {
     reflectShader_->setUniformValue("D", terrain_->scale().x);
 
     terrain_->draw(reflectShader_, instances_);
-
 }
 
-
-void GLPerlinTerrain::draw(VSML *vsml, float time) {    
+void GLPerlinTerrain::draw(GLSkyDome *sky, VSML *vsml, float time) {    
    
    fftwater_->waitForHeightfieldComputeThread();
      //fftwater_->computeHeightfield(time);
@@ -370,6 +375,16 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
     (*GLFramebufferManager::instance()->framebuffers())["1"]->bindsurface(0);
     drawShader_->setUniformValue("reflTex", 5);
     
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_1D, sky->perlinTextures()[0]);
+    drawShader_->setUniformValue("permutation", 6);
+    
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_1D, sky->perlinTextures()[1]);
+    drawShader_->setUniformValue("gradient", 7);
+    glActiveTexture(GL_TEXTURE0);
+    
+    drawShader_->setUniformValue("time", time / 50.0f);
     drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
     drawShader_->setUniformValue("LOD", lod_);
     drawShader_->setUniformValue("lightPos", engine_->light());
@@ -378,4 +393,9 @@ void GLPerlinTerrain::draw(VSML *vsml, float time) {
 
     terrain_->draw(drawShader_, instances_);
 
+}
+
+
+float GLPerlinTerrain::getHeight(const float3 &pos) {
+    
 }

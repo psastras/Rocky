@@ -28,13 +28,14 @@ in vec3 pass_TexCoord;
 out vec4 out_Color;
 
 vec4 moblur(vec2 velocity) {
-     //velocity = clamp(velocity, vec2(-0.01, -0.01), vec2(0.01, 0.01))*1.5;
-     velocity *= 0.01;
+    float s = 5.0;
+     velocity = clamp(velocity, vec2(-0.01, -0.01)*s, vec2(0.01, 0.01)*s);
+     velocity *= 0.05;
    
      vec2 texCoord = pass_TexCoord.st;
      vec4 color = texture(tex, texCoord);  
-     if(abs(velocity.s) + abs(velocity.t) < 0.005) return color;
-     int nSamples = 12;
+     if(abs(velocity.s) + abs(velocity.t) < 0.0035) return color;
+     int nSamples = 8;
      texCoord += velocity;  
      for(int i = 1; i < nSamples; ++i, texCoord += velocity) { 
 	 color += texture(tex, clamp(texCoord, vec2(0.001, 0.001), 
@@ -55,7 +56,8 @@ void main() {
    // currentPos /= currentPos.w;  
     vec2 currentPos = vec2(pass_TexCoord.x * 2 - 1, (pass_TexCoord.y) * 2 - 1);
     vec2 velocity = (currentPos.st-previousPos.st) * 0.5; 
-    out_Color = moblur(velocity);
+    //out_Color = moblur(velocity);
+    out_Color = texture(tex, pass_TexCoord.st);
     const vec4 wireframeColor = vec4(1.0, 0.0, 1.0, 0.0);
     if(wireframe) out_Color = mix(out_Color, wireframeColor, d1);
 }

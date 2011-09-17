@@ -32,3 +32,6 @@ src/gltextureloader.cpp
 shaders/post2.glsl
 shaders/post3.glsl
 shaders/reflect.glsl
+src/glskydome.h
+src/glskydome.cpp
+shaders/sky.glsl

@@ -19,23 +19,25 @@ void main(void) {
 
 #ifdef _FRAGMENT_
 in vec3 pass_TexCoord;
-out vec3 out_Color;
+out vec4 out_Color;
 uniform float alpha = 0.75;
 uniform float maxMipLevel;
 
 vec4 tonemap(vec4 color) {
    const vec3 luminace = vec3(0.2125f, 0.7154f, 0.0721f);
    float Y = dot(color.xyz, luminace);
-   float Yw = 0.95;
+   float Yw = 0.975;
    float Yp = exp(textureLod(tex, vec2(0.5, 0.5), maxMipLevel).w); //adaptation luminance
    float Yr = alpha * Y / Yp;
    float D = (Yr * (1.0 + Yr / (Yw * Yw)) / (1 + Yr));
-   return color * D / Y;
+   color = color * D / Y;
+   color.w = Yp;
+   return color;
 }
 
 
 void main() {
     vec4 color = tonemap(texture(tex, pass_TexCoord.st));
-    out_Color = color.xyz;
+    out_Color = color;
 }
 #endif

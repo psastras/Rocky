@@ -12,6 +12,8 @@ class GLFramebufferObject;
 class VSML;
 class GLEngine;
 class GLFFTWater;
+class GLSkyDome;
+
 struct GLPerlinTerrainParams {
     
     // geometry settings
@@ -30,12 +32,14 @@ class GLPerlinTerrain
 public:
     GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine);
     ~GLPerlinTerrain();
-    void draw (VSML *vsml, float time);
+    void draw (GLSkyDome *sky, VSML *vsml, float time);
     void drawReflection(VSML *vsml, float time);
     GLFramebufferObject *framebuffer() const { return framebuffers_[0]; } //@todo: remove this
     float lod() { return lod_; }
     void setLod(float lod) {  lod_ = lod; }
     GLPerlinTerrainParams params() { return params_; }
+    
+    float getHeight(const float3 &pos);
 protected:
     
     void generateTerrain(VSML *vsml);
@@ -47,7 +51,7 @@ protected:
     GLPrimitive *terrain_, *quad_;
     GLEngine *engine_;
     GLuint vboPosID_, vaoID_;
-    
+    float *heightmapData_;
     GLFFTWater *fftwater_;
     float lod_;
 };

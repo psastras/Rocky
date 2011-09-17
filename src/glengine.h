@@ -13,6 +13,7 @@ class GLShaderProgram;
 class VSML;
 class GLFFTWater;
 class GLPerlinTerrain;
+class GLSkyDome;
 struct WindowProperties {
     int width, height;
 };
@@ -61,6 +62,7 @@ protected:
     RenderMode renderMode_;
     int maxMipLevel_;
     GLPerlinTerrain *terrain_;
+    GLSkyDome *atmosphere_;
 };
 
 

@@ -28,16 +28,16 @@ out vec4 out_Color;
 vec3 godrays(vec2 texCoord) {  
     vec4 lightPosSS = projMatrixCurr * modelviewMatrixCurr * vec4(lightPos*5000, 1.0);
     lightPosSS /= lightPosSS.w;
-    float Exposure = .001f;
+    const float Exposure = .0015f;
      
     vec3 color = vec3(0.0);
     
     if(lightPosSS.z < 1.0) { //if were facing the light source
 	lightPosSS += 1.0;
 	lightPosSS /= 2.0;
-	const int samples = 70;
-	float density = 0.975;
-	float Weight = 6.65;
+	const int samples = 128;
+	const float density = 0.985;
+	const float Weight = 6.65;
 	
 	float Decay = 1.0;
 	vec2 deltaTexCoord = (texCoord - lightPosSS.xy);  

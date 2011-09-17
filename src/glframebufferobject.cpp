@@ -9,7 +9,7 @@ GLFramebufferObject::GLFramebufferObject(GLFramebufferObjectParams params) {
     // is not correct it will probably result in a gl error
     
     this->allocFramebuffer(params_);
-    GLERROR("creating framebuffer object");
+   // GLERROR("creating framebuffer object");
 
 }
 
@@ -44,7 +44,7 @@ void GLFramebufferObject::allocFramebuffer(GLFramebufferObjectParams &params) {
     
     glGenFramebuffers(1, &id_);
     
-    params.nCSamples = params.nSamples * 2; //TODO: MAKE THIS AN OPTION;
+  //  params.nCSamples = params.nSamples * 2; //TODO: MAKE THIS AN OPTION;
     
     bool isCSAA = false;glewIsSupported( "GL_NV_framebuffer_multisample_coverage") && (params.nCSamples > params.nSamples) && params.nSamples > 1;
     GLint coverageSampleConfigs;

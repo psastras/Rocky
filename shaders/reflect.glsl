@@ -54,7 +54,7 @@ float lod(vec3 pos) {
 }
 
 bool offscreen(vec4 vertex){
-    if((vertex.z < -0.5)) return true;
+    if((vertex.z < -0.1)) return true;
     float bound = 1.1;
     
     return any(lessThan(vertex.xy, vec2(-bound)) ||
@@ -155,8 +155,6 @@ void main() {
     float tHeight = texture(tex, gTexCoord).x;
     if(tHeight > waterLevel) {
 	tePosition.y -= tHeight;
-    }else {
-	//tePosition.y = 10.0; //lulz
     }
     gl_Position = vec4(tePosition, 1);  
 }
@@ -219,8 +217,6 @@ void main() {
 
     float NL = dot(N, L)*0.35+0.5;
     out_Color0.xyz *= NL;
-    
-    
     out_Color0.w = 1.0;
     //out_Color0 = vec4(0.0);
 

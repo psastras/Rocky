@@ -1,5 +1,6 @@
 #version 400 core
 
+
 uniform mat4 modelviewMatrix;
 uniform mat4 projMatrix;
 uniform sampler3D tex;
@@ -8,6 +9,8 @@ uniform sampler2D waterTex;
 uniform sampler2D testTex;
 uniform sampler2D sandTex;
 uniform sampler2D reflTex;
+uniform sampler1D permutation;
+uniform sampler1D gradient;
 uniform vec2 grid;
 uniform float D;
 uniform vec3 lightPos;
@@ -50,13 +53,13 @@ uniform float TessLevelOuter;
 
 float lod(vec3 pos) {
     vec3 distance = cameraPos.xyz-(pos.xyz*0.5);
-    distance *= 0.09; //bigger = lower tesselation
-    float d = LOD-clamp(pow(length(distance), 0.8),0.0,LOD-1);
+    distance *= 0.15; //bigger = lower tesselation
+    float d = LOD-clamp(pow(length(distance), 0.57),0.0,LOD-1);
     return d;
 }
 
 bool offscreen(vec4 vertex){
-    if((vertex.z < -0.5)) return true;
+    if((vertex.z < 0.0)) return true;
     float bound = 1.1;
     
     return any(lessThan(vertex.xy, vec2(-bound)) ||
@@ -139,6 +142,7 @@ in vec3 tcTexCoord[];
 out vec3 gTexCoord;
 
 void main() {
+    
     float u = gl_TessCoord.x, v = gl_TessCoord.y;
     vec3 a = mix(tcPosition[1], tcPosition[0], u);
     vec3 b = mix(tcPosition[2], tcPosition[3], u);
@@ -172,6 +176,7 @@ void main() {
 
 
 #ifdef _GEOMETRY_
+
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 in vec4 gPatchDistance[3];
@@ -180,6 +185,7 @@ out vec3 fTriDistance;
 out vec3 fTexCoord;
 out vec4 fPosition;
 void main() {
+    precision lowp float;
     fTriDistance = vec3(1, 0, 0);
     fTexCoord = gTexCoord[0];
     fPosition =  gl_in[0].gl_Position;
@@ -207,43 +213,6 @@ out vec4 out_Color0;
 out vec4 out_Color1;
 const vec4 wireframeColor = vec4(0.7, 0.3, 0.3, 1);
 
-vec4 atmosphere(vec3 pos) {
-    vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000);
-    vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000);
-    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * .2; //sun color
-    float d = length(pos - lightPos)*15.0;
-    if(pos.y >= 0.0)
-	return mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
-    else
-	return mix(c1, s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
-}
-
-vec4 water(vec3 normal, vec4 pos, vec3 disp) {
-    vec4 baseColor = vec4(0.133, 0.411, 0.498, 0.0);
-    vec3 norm = normalize(normal);
-    vec3 eyeDir	=  normalize(-cameraPos + pos.xyz);
-    vec3 reflDir = reflect(eyeDir, norm);
-    vec4 transColor = vec4(0.0, 0.278, 0.321, 0.0);
-    float cos_angle = max(dot(norm, eyeDir), 0.3);
-    
-    vec4 waterColor = mix(baseColor, transColor*transColor, cos_angle);
-    reflDir = normalize(reflDir);
-    
-    vec4 ss = projMatrix * modelviewMatrix * fPosition; 
-    ss /= ss.w;
-    ss += vec4(1.0);
-    ss *= 0.5;
-    //ss.xy += disp.xz*0.002*disp.y;
-    vec4 refl = texture(reflTex, ss.st);
-    vec4 atmoColor = atmosphere(reflDir)*1.5;
-    if(refl.w > 0.01) atmoColor = mix(atmoColor, refl, 0.75);
-    float distance = length(cameraPos.xyz - pos.xyz);
-    distance *= .005;
-    distance = clamp(distance, 0, 1);
-    //add foam if near shore
-    
-    return mix(waterColor, atmoColor, 0.6*distance);
-}
 
 float amplify(float d, float scale, float offset) {
     d = scale * d + offset;
@@ -253,6 +222,7 @@ float amplify(float d, float scale, float offset) {
 }
 
 vec4 computeFFTNormal(vec2 pos, float atten) {
+    
     float delta =(1.0/256.0);
     pos *= tile;
     
@@ -278,15 +248,138 @@ vec4 reflectTerrain(vec3 wspos) {
     return vec4(0.0);
 }
 
+
+const float sharpness = 0.995;
+const float gain = 0.65;
+const float lacunarity = 1.53;
+const float cover = 100;
+const int octaves = 4;
+uniform float time;
+vec3 fade(vec3 t) {
+	return t * t * t * (t * (t * 6 - 15) + 10); // new curve
+}
+
+float perm(float x) {
+	return texture(permutation, x).x;
+}
+
+float grad(float x, vec3 p) {
+	return dot(texture(gradient, x*16).xyz, p);
+}
+
+float inoise(vec3 p) {
+	vec3 P = mod(floor(p), 256.0);
+	p -= floor(p);
+	vec3 f = fade(p);
+	P /= 256.0;
+	const float one = 1.0 / 256.0;
+	float A = perm(P.x) + P.y;
+	vec4 AA;
+	AA.x = perm(A) + P.z;
+	AA.y = perm(A + one) + P.z;
+	float B =  perm(P.x + one) + P.y;
+	AA.z = perm(B) + P.z;
+	AA.w = perm(B + one) + P.z;
+	return mix(mix(mix(grad(perm(AA.x),p),  
+			   grad(perm(AA.z),p + vec3(-1,0,0)), f.x),
+		       mix(grad(perm(AA.y),p + vec3(0,-1,0)),
+			   grad(perm(AA.w),p + vec3(-1,-1,0)), f.x), f.y),
+		 mix(mix(grad(perm(AA.x+one), p + vec3(0,0,-1)),
+			     grad(perm(AA.z+one), p + vec3(-1,0,-1)),f.x),
+		       mix(grad(perm(AA.y+one), p + vec3(0,-1,-1)),
+			     grad(perm(AA.w+one), p + vec3(-1,-1,-1)),f.x), f.y), f.z);
+}
+
+float expfilter(float v) {
+	float c = max(v - 255.0 + cover, 0.0);
+	return 1.0 - pow(sharpness, c);
+}
+
+float turbulence(vec3 p, float lacunarity, float gain){
+	float sum = 0;
+	float freq = 1.0, amp = 1.0;
+	for(int i=0; i<octaves; i++) {
+		sum += abs(inoise(p*freq))*amp;
+		freq *= lacunarity;
+		amp *= gain;
+	}
+	return sum;
+}
+
+float clouds(vec3 pos) {
+	float noise = turbulence(pos, lacunarity, gain);
+	return expfilter(255.0f * noise);
+}
+
+
+vec4 atmosphere(vec3 pos) {
+    vec4 c0 = vec4(0.172, 0.290, 0.486, 1.000)*1.25;
+    vec4 c1 = vec4(0.321, 0.482, 0.607, 1.000)*1.25;
+    vec4 s0 = vec4(5.0, 5.0, 5.0, 1.0) * 0.2; //sun color
+    
+    const float atmoHeight = 100.0;
+    vec3 skypos = pos;
+    skypos *= atmoHeight / skypos.y / atmoHeight;
+    skypos.xz /= 10.0;
+    skypos.xz += vec2(time, time);
+    float d = length(pos - lightPos)*100.0;
+    vec4 atmoColor;
+    if(pos.y >= 0.0)
+	 atmoColor = mix(mix(c1,c0,pos.y), s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
+    else
+	 atmoColor = mix(c1, s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
+    
+   // if(pos.y > .01) {
+	float cloudCover = clouds(skypos)*2.0;
+	atmoColor = mix(atmoColor, vec4(1.0), clamp(cloudCover, 0.0, 1.0));
+	//atmoColor.w = 1.0;	
+//    } else {
+	
+	//atmoColor.w = 0.0;
+  //  }
+    
+    return atmoColor;
+}
+
+vec4 water(vec3 normal, vec4 pos, vec3 disp) {
+    
+    vec4 baseColor = vec4(0.133, 0.411, 0.498, 0.0);
+    vec3 norm = normalize(normal);
+    vec3 eyeDir	=  normalize(-cameraPos + pos.xyz);
+    vec3 reflDir = normalize(reflect(eyeDir, norm));
+    vec4 transColor = vec4(0.0, 0.278, 0.321, 0.0);
+    float cos_angle = max(dot(norm, eyeDir), 0.3);
+    
+    vec4 waterColor = mix(baseColor, transColor*transColor, cos_angle);
+    reflDir = normalize(reflDir);
+    
+    vec4 ss = projMatrix * modelviewMatrix * fPosition; 
+    ss /= ss.w;
+    ss += vec4(1.0);
+    ss *= 0.5;
+    //ss.xy += disp.xz*0.002*disp.y;
+    vec4 refl = texture(reflTex, ss.st);
+    vec4 atmoColor = atmosphere(reflDir)*1.5;
+    if(refl.w > 0.01) atmoColor = mix(atmoColor, refl, 0.75);
+    float distance = length(cameraPos.xyz - pos.xyz);
+    distance *= .005;
+    distance = clamp(distance, 0, 1);
+    //add foam if near shore
+    
+    return mix(waterColor, atmoColor, 0.6*distance);
+}
+
+
 void main() {
   
     float h = texture(tex, fTexCoord).x;
     float pVal = (1.0-(h*0.01+0.25));
-    out_Color0 = vec4(.7, .7, .6, 1.0)*pVal + vec4(0.3, 0.5, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
+    out_Color0 = vec4(.8, .8, .7, 1.0)*pVal + vec4(0.4, 0.6, 0.1, 1.0) * clamp((1.0-pVal-0.5), 0.0, 1.0);
     vec4 sand = texture(sandTex, fTexCoord.st*56.0);
     out_Color0 = mix(sand, mix(texture(testTex, fTexCoord.st*8.0), 
                      out_Color0, min(pVal+0.1, 1.0)), 1.0-max(pVal-0.5, -0.1));
     vec3 N = texture(normalTex, fTexCoord).xyz;
+
     vec3 L = normalize(fPosition.xyz-lightPos);
     vec3 V = normalize(cameraPos.xyz-fPosition.xyz);
     vec3 R = normalize(reflect(L, N));

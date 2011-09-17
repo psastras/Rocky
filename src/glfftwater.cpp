@@ -60,7 +60,8 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 	fftwf_plan_with_nthreads(2);
     }
   
-    m_fftplan = fftwf_plan_dft_c2r_2d(m_params.N, m_params.N, (fftwf_complex *)m_h, m_h, FFTW_ESTIMATE);
+    m_fftplan = fftwf_plan_dft_c2r_2d(m_params.N, m_params.N, (fftwf_complex *)m_h, m_h, 
+				      FFTW_ESTIMATE);
 
     glGenTextures(1, &m_texId);
     glBindTexture(GL_TEXTURE_2D, m_texId);
