@@ -34,7 +34,7 @@ vec4 moblur(vec2 velocity) {
    
      vec2 texCoord = pass_TexCoord.st;
      vec4 color = texture(tex, texCoord);  
-     if(abs(velocity.s) + abs(velocity.t) < 0.0035) return color;
+     if(abs(velocity.s) + abs(velocity.t) < 0.0025) return color;
      int nSamples = 8;
      texCoord += velocity;  
      for(int i = 1; i < nSamples; ++i, texCoord += velocity) { 

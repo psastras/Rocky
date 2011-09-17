@@ -154,7 +154,8 @@ int main(int argc, char *argv[]) {
     WindowProperties properties = {1280, 720}; //derp
     HDC hDC;				/* device context */
     HGLRC hRC;				/* opengl context */
-    HWND  hWnd;				/* window */
+    HWND  hWnd;				/* window */GLEngine *engine) {
+	params_ = params;
     MSG   msg;				/* message */
 
     char *windowName = (char *)"OpenGL Terrain Demo [2011 - psastras]";
@@ -314,6 +315,8 @@ int main(int argc, char *argv[]) {
 	    cerr << "Cannot connect to X server.  (Are you running a window system?)" << endl;
 	    exit(1);
      }
+
+
      Window root = DefaultRootWindow(dpy);
      GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
      XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
@@ -326,8 +329,8 @@ int main(int argc, char *argv[]) {
      XSetWindowAttributes swa;
      swa.colormap = cmap;
      swa.event_mask = ExposureMask | KeyPressMask;
-
-     Window win = XCreateWindow(dpy, root, 0, 0, 1366, 768, 0, vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
+     WindowProperties properties = {1366, 768};
+     Window win = XCreateWindow(dpy, root, 0, 0, properties.width, properties.height, 0, vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
      XMapWindow(dpy, win);
      XStoreName(dpy, win, "OpenGL Water Demo [2011 - psastras]");
      GLXContext glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
@@ -336,22 +339,15 @@ int main(int argc, char *argv[]) {
      XEvent xev;
      timespec ts;
 
-     WindowProperties properties = {1366, 768};
+
 
      // load fonts
      XFontStruct *font = XLoadQueryFont(dpy, "fixed");
      GLuint listbase = glGenLists(96);
      glXUseXFont(font->fid, ' ', 96, listbase);
 
-     // test for vsync
-     void (*swapInterval)(int) = 0;
-     if (checkGLXExtension("GLX_MESA_swap_control", dpy, 0))
-       swapInterval = (void (*)(int)) glXGetProcAddress((const GLubyte*) "glXSwapIntervalMESA");
-     else if (checkGLXExtension("GLX_SGI_swap_control", dpy, 0))
-       swapInterval = (void (*)(int)) glXGetProcAddress((const GLubyte*) "glXSwapIntervalSGI");
-     else
-       cerr << "No vsync detected, disabling." << endl;
-     if(swapInterval) swapInterval(1);
+
+
      float dt = 0.f;
 
      XSelectInput(dpy, win, KeyPressMask | KeyReleaseMask); //subscribe to keypress and release
@@ -369,9 +365,22 @@ int main(int argc, char *argv[]) {
      XDefineCursor(dpy,win, invisibleCursor);
      XFreeCursor(dpy, invisibleCursor);
 
+
+     pEngine = new GLEngine(properties);
     // main event loop
+     // test for vsync
+     void (*swapInterval)(int) = 0;
+     if (checkGLXExtension("GLX_MESA_swap_control", dpy, 0))
+       swapInterval = (void (*)(int)) glXGetProcAddress((const GLubyte*) "glXSwapIntervalMESA");
+     else if (checkGLXExtension("GLX_SGI_swap_control", dpy, 0))
+       swapInterval = (void (*)(int)) glXGetProcAddress((const GLubyte*) "glXSwapIntervalSGI");
+     else
+       cerr << "No vsync detected, disabling." << endl;
+     if(swapInterval) swapInterval(1);
+     clock_gettime(CLOCK_REALTIME, &ts);
+     float tTime = 0.f;
      while(1) {
-	    if(XPending(dpy)) { //if we have a pending xevent
+	    while(XPending(dpy)) { //if we have a pending xevent
 		XNextEvent(dpy, &xev);
 		if(xev.type == Expose) { // gl context resized
 			XGetWindowAttributes(dpy, win, &gwa);
@@ -379,10 +388,11 @@ int main(int argc, char *argv[]) {
 			XWarpPointer(dpy, win, win, 0, 0, gwa.width, gwa.height, gwa.width / 2, gwa.height / 2);
 		} else if(xev.type == KeyPress ) {
 		    //cout << "press: " << xev.xkey.keycode << endl;
-		    keycontroller->keyPressEvent(xev.xkey.keycode);
+		    pKeyController->keyPressEvent(xev.xkey.keycode);
+
 		} else if(xev.type == KeyRelease) {
 		//    cout << "release: " << xev.xkey.keycode << endl;
-		    keycontroller->keyReleaseEvent(xev.xkey.keycode);
+		    pKeyController->keyReleaseEvent(xev.xkey.keycode);
 		}
 	    }
 
@@ -390,23 +400,24 @@ int main(int argc, char *argv[]) {
 	    Window winfocused;
 	    int    revert;
 	    XGetInputFocus(dpy, &winfocused, &revert);
-	    if(winfocused == win) { //if window is focused keep the mouse steady and respond to mouse events
+	   // if(winfocused == win) { //if window is focused keep the mouse steady and respond to mouse events
 		XQueryPointer(dpy, win, &xev.xbutton.root, &xev.xbutton.window, &xev.xbutton.x_root, &xev.xbutton.y_root, &xev.xbutton.x, &xev.xbutton.y, &xev.xbutton.state);
-		XWarpPointer(dpy, win, win, 0, 0, gwa.width, gwa.height, gwa.width / 2, gwa.height / 2);
-		float dx = (xev.xbutton.x - (gwa.width / 2.0)) / (float)gwa.width;
-		float dy = (xev.xbutton.y - (gwa.height / 2.0)) / (float)gwa.height;
-		pEngine->mouseMove(dx, dy, dt);
-	    }
+
+		float dx = (xev.xbutton.x - (gwa.width / 2.0f)) / (float)gwa.width;
+		float dy = (xev.xbutton.y - (gwa.height / 2.0f)) / (float)gwa.height;
+
+		pEngine->mouseMove(dx, -dy, dt);
+		//XWarpPointer(dpy, win, win, 0, 0, gwa.width, gwa.height, gwa.width / 2, gwa.height / 2);
+	 //   }
 
 	    // handle keyboard - @todo: remove hard coded values
-	    if(keycontroller->isKeyDown(9)) { //esc
+	    if(pKeyController->isKeyDown(9)) { //esc
 		break;
 	    }
 	    //draw
 	    clock_gettime(CLOCK_REALTIME, &ts);
 	    long time = ts.tv_nsec;
-
-	    pEngine->draw(ts.tv_sec, dt, keycontroller);
+	    pEngine->draw(tTime*15.f, dt, pKeyController);
 
 /*	    clock_gettime(CLOCK_REALTIME, &ts);
 	    std::stringstream ss;
@@ -421,14 +432,20 @@ int main(int argc, char *argv[]) {
 	    glPopAttrib();
 	    glListBase(0);
 */
+	    tTime += dt;
+	    clock_gettime(CLOCK_REALTIME, &ts);
+	    dt = ((ts.tv_nsec - time) * 1.0e-9);
+	    if(dt < 0) dt = 0.01; //@todo this is cause were overflowing max long i think?
 
-	    glFinish();
 	    glXSwapBuffers(dpy, win);
-	    keycontroller->swapBuffers();
+	    glFlush();
+	    glFinish();
+	 //   glFlush();
 
+	    pKeyController->swapBuffers();
     }
 
-     delete keycontroller;
+     delete pKeyController;
      // Restore the X left facing cursor
      Cursor cursor;
      cursor=XCreateFontCursor(dpy,XC_left_ptr);

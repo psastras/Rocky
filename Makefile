@@ -17,8 +17,8 @@ ifeq ($(OS),Windows_NT)
     INCLUDES = -IC:/MinGW/msys/1.0/include -IC:/MinGW/msys/1.0/local/include -I$(VSMLDIR)
 else
     EXECUTABLE = rocky
-    LDFLAGS = -lm -lX11 -lGL -lGLU -lfftw3f -lpthread -lIL -lglew32
-    INCLUDES = -I$(VSMLDIR)
+    LDFLAGS = -lm -lX11 -lGL -lGLU -L/contrib/projects/fftw/lib -lfftw3f -lfftw3f_threads -lpthread -lIL -L/contrib/projects/glew/lib -lGLEW -lrt
+    INCLUDES = -I$(VSMLDIR) -I/contrib/projects/glew/include  -I/contrib/projects/fftw/include
 endif
 
 

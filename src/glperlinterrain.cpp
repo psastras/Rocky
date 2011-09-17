@@ -33,7 +33,7 @@ GLPerlinTerrain::GLPerlinTerrain(GLPerlinTerrainParams &params, GLEngine *engine
     fftparams.V = 10.0f;
     fftparams.w = 200 * 3.14159f / 180.0f;
     fftparams.L = 200.0;
-    fftparams.N = 128;
+    fftparams.N = 256;
     fftparams.chop = 2.0;
     fftwater_ = new GLFFTWater(fftparams);
     fftwater_->startHeightfieldComputeThread(0.f);
@@ -385,7 +385,7 @@ void GLPerlinTerrain::draw(GLSkyDome *sky, VSML *vsml, float time) {
     glActiveTexture(GL_TEXTURE0);
     
     drawShader_->setUniformValue("time", time / 70.0f);
-    drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
+    drawShader_->setUniformValue("cameraPos", (float3)(engine_->camera()->eye));
     drawShader_->setUniformValue("LOD", lod_);
     drawShader_->setUniformValue("lightPos", engine_->light());
     drawShader_->setUniformValue("grid", float2(params_.grid.x, params_.grid.y));

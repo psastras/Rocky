@@ -4,7 +4,9 @@
 #include <windows.h>
 #endif
 #include <GL/glew.h>
+#ifdef _WIN32
 #include <GL/wglew.h>
+#endif
 #include "common.h"
 #ifdef near
 #undef near
@@ -27,7 +29,6 @@ struct Camera {
     float3 eye, center, up;
     float fovy, near, far;
     float rotx, roty;
-
     void perspective_camera(int w,int h) {
 
 	float ratio = w / static_cast<float>(h);

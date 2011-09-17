@@ -16,7 +16,7 @@ GLPrimitive *pQuad;
 GLEngine::GLEngine(WindowProperties &properties) {
     //std::thread t(hello);
     //renderMode_ = FILL;
-
+    glewInit();
     //init gl setup
     vsml_ = VSML::getInstance();
     width_ = properties.width;
@@ -47,8 +47,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.depthFormat = GL_DEPTH_COMPONENT16;
     params.format = GL_RGBA16F;
     params.nColorAttachments = 2;
-    params.nSamples = 4;//GLFramebufferObject::sssdqueryMaxSamples();
-    params.nCSamples = 4;
+    params.nSamples = 32;//GLFramebufferObject::sssdqueryMaxSamples();
+    params.nCSamples = 32;
     params.type = GL_TEXTURE_2D;
     (*GLFramebufferManager::instance()->framebuffers())["m"] = new GLFramebufferObject(params);
     
@@ -274,8 +274,6 @@ std::tr1::mt19937 prng(1337);
 std::tr1::uniform_real<float> uniform;
 std::tr1::variate_generator<std::tr1::mt19937, std::tr1::uniform_real<float> > randu(prng,uniform);
 void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float dt) {
-
-    // todo: this is so bad.,,
 #ifdef _WIN32
 #define KEY_W 87
 #define KEY_A 65
@@ -293,9 +291,14 @@ void GLEngine::processKeyEvents(const KeyboardController *keycontroller, float d
 #define KEY_S 39
 #define KEY_D 40
 #define KEY_SPACE 65
+#define KEY_1 10
+#define KEY_2 11
+#define KEY_UP 111
+#define KEY_DOWN 116
+#define KEY_G 42
 #endif
 
-    float delta = sensitivity * 20.0 / dt;
+    float delta = sensitivity * 1.0 / dt;
     if(keycontroller->isKeyDown(KEY_W)) { //W
 	float yrotrad = camera_.roty / 180 * 3.141592654f;
 	float xrotrad = camera_.rotx / 180 * 3.141592654f;

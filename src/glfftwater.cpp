@@ -72,10 +72,12 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 
 GLFFTWater::~GLFFTWater() {
     fftwf_free(m_htilde0);
+#ifdef _WIN32
     __mingw_aligned_free(m_w);
     __mingw_aligned_free(m_h);
     __mingw_aligned_free(m_dx);
     __mingw_aligned_free(m_dz);
+#endif
     delete[] m_kz;
     delete[] m_heightmap;
     delete[] m_kx; 
