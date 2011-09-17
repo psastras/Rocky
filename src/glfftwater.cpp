@@ -4,10 +4,9 @@
 #include <malloc.h>
 #include <math.h>
 #include <pthread.h>
-GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 
+GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
 #ifdef _WIN32
-    // well i hope were compiling with mingw...
     m_h = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
     m_dx = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
     m_dz = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
@@ -101,16 +100,13 @@ GLuint GLFFTWater::heightfieldTexture() {
     return m_texId;
 }
 
-
-
 struct ThreadInfo {
     GLFFTWater *water;
     float time;
 } info;
 
-void *TaskCode(void *argument) {
+void *heightfieldThread(void *argument) {
    GLFFTWater *water = ((ThreadInfo *)argument)->water;
-  
    water->computeHeightfield(((ThreadInfo *)argument)->time);
 }
 
@@ -118,7 +114,7 @@ void *TaskCode(void *argument) {
 void GLFFTWater::startHeightfieldComputeThread(float t) {
     info.time = t;
     info.water = this;
-    pthread_create(&computeThread_, 0, TaskCode, (void *)&info);
+    pthread_create(&computeThread_, 0, heightfieldThread, (void *)&info);
 }
 
 void GLFFTWater::waitForHeightfieldComputeThread() {

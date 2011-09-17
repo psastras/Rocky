@@ -330,8 +330,8 @@ vec4 atmosphere(vec3 pos) {
 	 atmoColor = mix(c1, s0, clamp(1.0/pow(d,1.1), 0.0, 1.0));
     
    // if(pos.y > .01) {
-	float cloudCover = clouds(skypos)*2.0;
-	atmoColor = mix(atmoColor, vec4(1.0), clamp(cloudCover, 0.0, 1.0));
+	//float cloudCover = clouds(skypos)*2.0;
+	//atmoColor = mix(atmoColor, vec4(1.0), clamp(cloudCover, 0.0, 1.0));
 	//atmoColor.w = 1.0;	
 //    } else {
 	
@@ -366,7 +366,7 @@ vec4 water(vec3 normal, vec4 pos, vec3 disp) {
     distance = clamp(distance, 0, 1);
     //add foam if near shore
     
-    return mix(waterColor, atmoColor, 0.6*distance);
+    return mix(waterColor, atmoColor, 0.6*distance)*1.5;
 }
 
 
@@ -391,7 +391,6 @@ void main() {
     float NL = dot(N, L)*0.45+0.5;
     
     out_Color0.xyz  *= NL;
-   //     out_Color0.xyz = N;
     float dH = abs(h - waterLevel)*attenuation;
     
     

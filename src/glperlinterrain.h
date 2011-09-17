@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 using namespace std;
+
 class GLShaderProgram;
 class GLPrimitive;
 class GLFramebufferObject;

@@ -47,8 +47,8 @@ GLEngine::GLEngine(WindowProperties &properties) {
     params.depthFormat = GL_DEPTH_COMPONENT16;
     params.format = GL_RGBA16F;
     params.nColorAttachments = 2;
-    params.nSamples = 2;//GLFramebufferObject::queryMaxSamples();
-    params.nCSamples = 2;
+    params.nSamples = 4;//GLFramebufferObject::sssdqueryMaxSamples();
+    params.nCSamples = 4;
     params.type = GL_TEXTURE_2D;
     (*GLFramebufferManager::instance()->framebuffers())["m"] = new GLFramebufferObject(params);
     

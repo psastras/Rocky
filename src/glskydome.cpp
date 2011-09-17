@@ -82,7 +82,7 @@ void GLSkyDome::draw(VSML *vsml, float time) {
     skyShader_->setUniformValue("gradient", 1);
     glActiveTexture(GL_TEXTURE0);
     skyShader_->setUniformValue("lightPos", engine_->light());
-    skyShader_->setUniformValue("time", time / 50.0f);
+    skyShader_->setUniformValue("time", time / 70.0f);
     glDrawBuffers(2, outputTex); 
     domePrimitive_->draw(skyShader_);
 }

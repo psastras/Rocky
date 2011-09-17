@@ -384,7 +384,7 @@ void GLPerlinTerrain::draw(GLSkyDome *sky, VSML *vsml, float time) {
     drawShader_->setUniformValue("gradient", 7);
     glActiveTexture(GL_TEXTURE0);
     
-    drawShader_->setUniformValue("time", time / 50.0f);
+    drawShader_->setUniformValue("time", time / 70.0f);
     drawShader_->setUniformValue("cameraPos", engine_->camera()->eye);
     drawShader_->setUniformValue("LOD", lod_);
     drawShader_->setUniformValue("lightPos", engine_->light());
