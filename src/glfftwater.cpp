@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
+#if 0
 #ifdef _WIN32
     m_h = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
     m_dx = (float *)__mingw_aligned_malloc((sizeof(float)*(params.N+2)*(params.N)), 4);
@@ -17,7 +18,12 @@ GLFFTWater::GLFFTWater(GLFFTWaterParams &params) {
     posix_memalign((void **)&m_dz,4,sizeof(float)*(params.N+2)*(params.N));
     posix_memalign((void **)&m_w,4,sizeof(float)*(params.N)*(params.N));
 #endif
-
+#else
+		m_h = new float[(params.N+2)*params.N];
+		m_dx = new float[(params.N+2)*(params.N)];
+		m_dz = new float[(params.N+2)*(params.N)];
+		m_w = new float[(params.N)*(params.N)];
+#endif
     m_htilde0 = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*(params.N)*(params.N));
     m_heightmap = new float3[(params.N)*(params.N)];
     m_params = params;
@@ -81,6 +87,10 @@ GLFFTWater::~GLFFTWater() {
     delete[] m_kz;
     delete[] m_heightmap;
     delete[] m_kx; 
+    delete[] m_w;
+    delete[] m_h;
+    delete[] m_dx;
+    delete[] m_dz;
 }
 
 float GLFFTWater::phillips(float kx, float ky, float& w) {
